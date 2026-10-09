@@ -1,0 +1,8 @@
+node_modules/
+**/dist/
+coverage/
+benchmark-results/
+hobbymaxx-benchmark-test-*/
+package-lock.json
+.env
+.env.*

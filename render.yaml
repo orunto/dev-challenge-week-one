@@ -1,0 +1,34 @@
+# Review costs before creating this paid service. No resources are provisioned by this file alone.
+services:
+  - type: web
+    name: hobbymaxx
+    runtime: docker
+    plan: 1c-2g
+    healthCheckPath: /health
+    disk:
+      name: gemma-models
+      mountPath: /var/data
+      sizeGB: 2
+    envVars:
+      - key: HOST
+        value: 0.0.0.0
+      - key: OLLAMA_MODEL
+        value: gemma3:1b
+      - key: MODEL_DIGEST
+        value: 97558784bdc9175075a72655bf360b15da17df6b3b9e5182af9f8c0c8e58ba7c
+      - key: MODEL_CONTEXT
+        value: '4096'
+      - key: MODEL_MAX_OUTPUT
+        value: '512'
+      - key: MODEL_THREADS
+        value: '1'
+      - key: INFERENCE_TIMEOUT_MS
+        value: '120000'
+      - key: QUEUE_TIMEOUT_MS
+        value: '30000'
+      - key: MAX_QUEUED_REQUESTS
+        value: '3'
+      - key: MAX_INPUT_BYTES
+        value: '1000'
+      - key: RATE_LIMIT_MAX
+        value: '20'

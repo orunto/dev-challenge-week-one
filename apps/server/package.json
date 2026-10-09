@@ -1,0 +1,16 @@
+{
+  "name": "@hobbymaxx/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts"
+  },
+  "dependencies": {
+    "@fastify/rate-limit": "^10.3.0",
+    "@hobbymaxx/shared": "*",
+    "@hobbymaxx/hobby-catalog": "*",
+    "fastify": "^5.6.0",
+    "zod": "^4.0.0"
+  }
+}
