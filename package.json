@@ -8,20 +8,23 @@
     "packages/*"
   ],
   "engines": {
-    "node": ">=22"
+    "node": ">=22.12"
   },
   "scripts": {
-    "build": "tsc -b",
-    "typecheck": "tsc -b && tsc -p tsconfig.tools.json",
-    "dev": "npm run build && npm run dev --workspace @hobbymaxx/server",
+    "build": "npm run build:server && npm run build --workspace @hobbymaxx/web",
+    "build:server": "tsc -b",
+    "typecheck": "tsc -b && tsc -p tsconfig.tools.json && npm run typecheck --workspace @hobbymaxx/web",
+    "dev": "npm run build:server && npm run dev --workspace @hobbymaxx/server",
+    "dev:web": "npm run dev --workspace @hobbymaxx/web",
     "start": "node apps/server/dist/index.js",
-    "test": "npm run build && tsx --test apps/server/test/*.test.ts",
-    "benchmark": "npm run build && tsx scripts/benchmark.ts",
+    "test": "npm run build:server && tsx --test apps/server/test/*.test.ts apps/web/test/*.test.ts",
+    "benchmark": "npm run build:server && tsx scripts/benchmark.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
+    "fake-indexeddb": "^6.2.0",
     "prettier": "^3.9.9",
     "tsx": "^4.20.0",
     "typescript": "^5.9.0"

@@ -1,9 +1,13 @@
 import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify';
 import rateLimit from '@fastify/rate-limit';
+import staticFiles from '@fastify/static';
 import { once } from 'node:events';
+import { stat } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
 import {
   chatRequestSchema,
+  preferenceRequestSchema,
   recommendationRequestSchema,
   type ChatEvent,
 } from '@hobbymaxx/shared';
@@ -13,6 +17,9 @@ import { memorySnapshot } from './memory.js';
 import { OllamaClient, type InferenceClient, type ModelMessage } from './ollama.js';
 import {
   onboardingPrompt,
+  parsePreferences,
+  preferenceFormat,
+  preferenceMessages,
   parseRecommendations,
   recommendationFormat,
   recommendationMessages,
@@ -31,6 +38,7 @@ export async function buildApp(
   options: {
     client?: InferenceClient;
     log?: (event: OperationalEvent) => void;
+    webRoot?: string | false;
   } = {},
 ) {
   // Never enable automatic request/error logging: validation errors may carry personal data.
@@ -46,6 +54,14 @@ export async function buildApp(
   const shutdown = new AbortController();
   app.addHook('preClose', async () => {
     shutdown.abort();
+  });
+
+  // Mark static routes before the rate-limit plugin's onRoute hook runs.
+  // Loading fonts/scripts must not consume the model-generation allowance.
+  app.addHook('onRoute', (route) => {
+    if (!route.url.startsWith('/api/') && route.url !== '/ready') {
+      route.config = { ...route.config, rateLimit: false };
+    }
   });
 
   await app.register(rateLimit, {
@@ -110,6 +126,7 @@ export async function buildApp(
           context: config.MODEL_CONTEXT,
           maxOutput: config.MODEL_MAX_OUTPUT,
           threads: config.MODEL_THREADS,
+          limits: { maxInputBytes: config.MAX_INPUT_BYTES, maxMessages: 12 },
           modelState: await client.status(),
           queue: queue.status,
           memory: await memorySnapshot(),
@@ -231,6 +248,38 @@ export async function buildApp(
     }
   });
 
+  app.post('/api/preferences', async (request, reply) => {
+    const body = preferenceRequestSchema.parse(request.body);
+    const messages = preferenceMessages(body.messages);
+    validateBudget(messages, body.messages);
+    const connection = lifecycle(request, reply);
+    let held: Awaited<ReturnType<typeof lease>> | undefined;
+    try {
+      held = await lease(connection.signal);
+      const result = await client.generate(
+        messages,
+        held.signal,
+        undefined,
+        preferenceFormat,
+      );
+      const profile = parsePreferences(result.content);
+      log({
+        event: 'preferences_completed',
+        requestId: request.id,
+        elapsedMs: result.metrics.inferenceMs,
+      });
+      return { profile, metrics: { queueMs: held.queueMs, ...result.metrics } };
+    } catch (error) {
+      if (held?.timeout.aborted) {
+        throw new AppError(504, 'INFERENCE_TIMEOUT', 'Gemma took too long. Please try again.');
+      }
+      throw error;
+    } finally {
+      held?.release();
+      connection.cleanup();
+    }
+  });
+
   app.post('/api/recommendations', async (request, reply) => {
     const body = recommendationRequestSchema.parse(request.body);
     const messages = recommendationMessages(body.profile);
@@ -269,6 +318,13 @@ export async function buildApp(
       connection.cleanup();
     }
   });
+
+  const webRoot = options.webRoot === false
+    ? null
+    : options.webRoot ?? fileURLToPath(new URL('../../web/dist/', import.meta.url));
+  if (webRoot && await stat(webRoot).then((entry) => entry.isDirectory()).catch(() => false)) {
+    await app.register(staticFiles, { root: webRoot, wildcard: false });
+  }
 
   return app;
 }

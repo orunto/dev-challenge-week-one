@@ -44,9 +44,11 @@ Fastify will serve the built frontend and API from the same origin. Ollama will 
 
 **Phase-one implementation and local baseline evaluation are recorded; verification remains open.** Real Gemma CPU benchmarks completed: 10/10 sequential requests succeeded, while the three-client run had 3/10 successes and seven queue timeouts. Recommendation review identified constraint violations, and follow-up code now enforces catalog eligibility and the evaluated model digest. The targeted post-change rerun was interrupted; final checks, quality review, Docker execution, and Render-tier validation are pending. See [`docs/phase-one-results.md`](docs/phase-one-results.md).
 
-Phases two through six are pending. Deployment for phase-one measurements may happen before the final deployment milestone; provisioning paid resources requires explicit approval.
+**Phase two is implemented in source, with user-run verification pending.** The React/Vite onboarding flow, editable preference review, IndexedDB history/resume, and separate model profile-extraction endpoint are written. Dependencies/lockfile installation, formatting, type checks, tests, real-Gemma extraction review, and mobile/browser verification have not been run. See [`docs/phase-two.md`](docs/phase-two.md).
 
-**Execution preference:** the user will run all further processes. Write/edit code and documentation, but do not run commands, tests, downloads, servers, containers, or deployments without a new explicit instruction changing this preference.
+Phases three through six are pending. Deployment for phase-one measurements may happen before the final deployment milestone; provisioning paid resources requires explicit approval.
+
+**Execution preference:** Git inspection, staging, and explicitly approved commits are authorized. The user runs all other processes, including installs, formatting, tests, builds, benchmarks, development servers, and Docker checks. Show the exact drafted message and obtain approval before each commit; use the configured identity without overrides. Remote pushes and paid deployment require separate explicit permission.
 
 ## Phase 1 — Prove hosted Gemma feasibility
 
@@ -92,20 +94,26 @@ The pinned model is a viable development candidate for a slow single-user demo, 
 
 ### Deliverables
 
-- Scaffold the React/Vite frontend and connect it to the same-origin API.
-- Extract shared design tokens and accessible reusable controls from `design.md`.
-- Build welcome, conversation, and preference-review screens.
-- Explain hosted processing and local history before the first conversation.
-- Stream Gemma replies with clear waiting, generating, cancel, retry, and unavailable states.
-- Let users skip questions; do not pressure them to reveal personal details.
-- Add a separate, validated model operation for extracting a preference profile.
-- Present an editable summary before generating recommendations.
-- Let users choose a 7- or 14-day cycle.
-- Save the confirmed profile locally and offer to discard the raw conversation.
+- [x] Scaffold the React/Vite frontend and connect it to the same-origin API.
+- [x] Extract design tokens and accessible reusable controls from `design.md`.
+- [x] Build welcome, conversation, preference-review, and confirmed-profile screens.
+- [x] Explain hosted processing and local history before the first conversation.
+- [x] Implement streamed replies with waiting, generating, cancel, retry, and unavailable states.
+- [x] Let users skip questions or enter preferences without a conversation.
+- [x] Add a separate, validated model operation for extracting a preference draft; unknown choices remain null.
+- [x] Present an editable summary before the later recommendation-generation phase.
+- [x] Let users choose a 7- or 14-day cycle without starting a cycle during onboarding.
+- [x] Implement IndexedDB resume/save and optional raw-conversation removal on confirmation.
+- [x] Add regression tests for extraction, stream framing/cancellation, storage ordering, and frontend serving.
+- [ ] Install the new dependencies and update `package-lock.json` (user-run).
+- [ ] Run formatting, type checks, tests, and the production build (user-run).
+- [ ] Verify real Gemma extraction quality, reload/resume, narrow layouts, and mobile-keyboard behavior (user-run).
 
 ### Exit criterion
 
 A user can move from a personal conversation to a confirmed, locally saved profile, reload the app, and resume without losing their work. The flow works on narrow screens and with a mobile keyboard.
+
+This exit criterion has not been verified. Written regression tests and responsive styles are implementation evidence, not a browser or real-model pass.
 
 ## Phase 3 — Deliver hobby experiments
 

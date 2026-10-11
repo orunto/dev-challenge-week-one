@@ -4,10 +4,12 @@ FROM node:24.18.0-bookworm-slim AS build
 WORKDIR /app
 COPY package.json package-lock.json tsconfig*.json ./
 COPY apps/server/package.json apps/server/package.json
+COPY apps/web/package.json apps/web/package.json
 COPY packages/shared/package.json packages/shared/package.json
 COPY packages/hobby-catalog/package.json packages/hobby-catalog/package.json
 RUN npm ci --ignore-scripts
 COPY apps/server apps/server
+COPY apps/web apps/web
 COPY packages packages
 RUN npm run build && npm prune --omit=dev --ignore-scripts
 

@@ -6,5 +6,6 @@ coverage/
 !.env.example
 benchmark-results/
 hobbymaxx-benchmark-test-*/
+hobbymaxx-web-test-*/
 *.log
 .DS_Store

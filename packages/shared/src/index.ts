@@ -26,8 +26,8 @@ export const chatRequestSchema = z
 export const profileSchema = z
   .object({
     interests: z.array(z.string().trim().min(1).max(100)).max(8),
-  constraints: z.array(z.string().trim().min(1).max(160)).max(8),
-  excludedHobbyIds: z.array(z.string().min(1).max(64)).max(10).optional(),
+    constraints: z.array(z.string().trim().min(1).max(160)).max(8),
+    excludedHobbyIds: z.array(z.string().min(1).max(64)).max(10).optional(),
     minutesPerSession: z.number().int().min(5).max(240),
     budget: z.enum(['free', 'low', 'flexible']),
     environment: z.enum(['indoor', 'outdoor', 'either']),
@@ -36,6 +36,28 @@ export const profileSchema = z
   .strict();
 
 export const recommendationRequestSchema = z.object({ profile: profileSchema }).strict();
+
+// Unstated facts stay null until the person explicitly chooses them in review.
+export const preferenceDraftSchema = z
+  .object({
+    interests: z.array(z.string().trim().min(1).max(100)).max(8),
+    constraints: z.array(z.string().trim().min(1).max(160)).max(8),
+    excludedHobbyIds: z.array(z.string().min(1).max(64)).max(10),
+    minutesPerSession: z.number().int().min(5).max(240).nullable(),
+    budget: z.enum(['free', 'low', 'flexible']).nullable(),
+    environment: z.enum(['indoor', 'outdoor', 'either']).nullable(),
+    socialPreference: z.enum(['solo', 'social', 'either']).nullable(),
+  })
+  .strict();
+
+export const preferenceRequestSchema = z
+  .object({ messages: z.array(chatMessageSchema).min(1).max(12) })
+  .strict()
+  .refine((value) => value.messages.some((message) => message.role === 'user'), {
+    message: 'At least one user message is required.',
+  });
+
+export const cycleDaysSchema = z.union([z.literal(7), z.literal(14)]);
 
 export const recommendationSchema = z
   .object({
@@ -70,6 +92,8 @@ export interface InferenceMetrics {
 
 export type ChatMessage = z.infer<typeof chatMessageSchema>;
 export type Profile = z.infer<typeof profileSchema>;
+export type PreferenceDraft = z.infer<typeof preferenceDraftSchema>;
+export type CycleDays = z.infer<typeof cycleDaysSchema>;
 export type Recommendations = z.infer<typeof recommendationsSchema>;
 
 export type ChatEvent =
