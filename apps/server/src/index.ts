@@ -1,13 +1,17 @@
 import { existsSync } from 'node:fs';
 import { buildApp } from './app.js';
 import { readConfig } from './config.js';
+import { startupFailure, type StartupStage } from './startup.js';
 
-if (existsSync('.env')) {
-  process.loadEnvFile('.env');
-}
+let stage: StartupStage = 'environment';
 
 async function main() {
+  if (existsSync('.env')) {
+    process.loadEnvFile('.env');
+  }
+  stage = 'configuration';
   const config = readConfig();
+  stage = 'application';
   const app = await buildApp(config, {
     log: (event) => console.log(JSON.stringify(event)),
   });
@@ -21,7 +25,15 @@ async function main() {
   };
   process.once('SIGTERM', stop);
   process.once('SIGINT', stop);
-  await app.listen({ port: config.PORT, host: config.HOST });
+  stage = 'listen';
+  try {
+    await app.listen({ port: config.PORT, host: config.HOST });
+  } catch (error) {
+    process.off('SIGTERM', stop);
+    process.off('SIGINT', stop);
+    await app.close().catch(() => {});
+    throw error;
+  }
   console.log(
     JSON.stringify({
       event: 'server_started',
@@ -31,13 +43,10 @@ async function main() {
   );
 }
 
-main().catch(() => {
+main().catch((error: unknown) => {
   // Configuration/upstream exception strings are not safe public log material.
   console.error(
-    JSON.stringify({
-      event: 'startup_failed',
-      message: 'Check configuration and port availability.',
-    }),
+    JSON.stringify(startupFailure(error, stage)),
   );
   process.exitCode = 1;
 });
