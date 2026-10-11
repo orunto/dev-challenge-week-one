@@ -4,7 +4,7 @@ import {
   recommendationsSchema,
   type ChatEvent,
   type InferenceMetrics,
-} from '@hobbymaxx/shared';
+} from '../packages/shared/dist/index.js';
 import { benchmarkCases } from './benchmark-cases.js';
 
 const { values } = parseArgs({

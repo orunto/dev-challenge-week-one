@@ -1,4 +1,4 @@
-import type { Profile } from '@hobbymaxx/shared';
+import type { Profile } from '../packages/shared/dist/index.js';
 
 export interface BenchmarkCase {
   id: string;

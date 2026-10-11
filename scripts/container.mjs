@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process';
 import { mkdir } from 'node:fs/promises';
 import { setTimeout as delay } from 'node:timers/promises';
-import { evaluatedModel } from '@hobbymaxx/shared';
+import { evaluatedModel } from '../packages/shared/dist/index.js';
 
 // Ollama stdout/stderr are deliberately not forwarded: upstream logs are not
 // part of the application's audited, content-free operational logging policy.

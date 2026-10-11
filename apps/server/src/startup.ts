@@ -13,6 +13,7 @@ const knownFailures: Record<string, string> = {
   EACCES: 'The process cannot bind the configured address or port. Check permissions or choose another PORT.',
   EADDRNOTAVAIL: 'HOST is not an address available on this machine. For local development, use 127.0.0.1.',
   ENOTFOUND: 'The configured HOST could not be resolved. Check HOST.',
+  ERR_MODULE_NOT_FOUND: 'A required module could not be resolved. Build the workspace packages and check dependency installation against bun.lock.',
   FST_ERR_DUPLICATED_ROUTE: 'Application initialization registered a duplicate route. Check the frontend/static route configuration.',
   FST_ERR_PLUGIN_VERSION_MISMATCH: 'A Fastify plugin is incompatible with the installed Fastify version. Check dependency installation against bun.lock.',
   FST_ERR_PLUGIN_TIMEOUT: 'A Fastify plugin did not finish initialization within its timeout.',

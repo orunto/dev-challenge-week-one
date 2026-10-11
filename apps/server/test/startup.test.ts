@@ -12,6 +12,12 @@ test('startup diagnostics identify port conflicts without disclosing raw error t
   const unexpected = startupFailure({ code: 'PRIVATE_ERROR_CODE', message: 'PRIVATE_MESSAGE' }, 'application');
   assert.equal(unexpected.code, 'STARTUP_FAILURE');
   assert.ok(!JSON.stringify(unexpected).includes('PRIVATE_'));
+  const missingModule = startupFailure(
+    Object.assign(new Error('PRIVATE_MODULE_PATH'), { code: 'ERR_MODULE_NOT_FOUND' }),
+    'application',
+  );
+  assert.equal(missingModule.code, 'ERR_MODULE_NOT_FOUND');
+  assert.ok(!JSON.stringify(missingModule).includes('PRIVATE_MODULE_PATH'));
 });
 
 test('configuration diagnostics show allowlisted field names, not invalid values', () => {
