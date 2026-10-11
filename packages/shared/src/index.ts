@@ -105,6 +105,7 @@ export type ChatEvent =
 export const cycleSchema = z.object({
   id: z.string().uuid(),
   startedAt: z.iso.datetime(),
+  startedOn: z.iso.date().optional(),
   dueAt: z.iso.datetime(),
   cycleDays: cycleDaysSchema,
   profile: profileSchema,
@@ -116,3 +117,31 @@ export const cycleSchema = z.object({
 }, { message: 'Invalid cycle IDs or due date.' });
 
 export type Cycle = z.infer<typeof cycleSchema>;
+
+export const activityLogSchema = z.object({
+  id: z.string().uuid(),
+  cycleId: z.string().uuid(),
+  hobbyId: z.string().min(1).max(64),
+  activityId: z.string().min(1).max(100),
+  occurredOn: z.iso.date(),
+  recordedAt: z.iso.datetime(),
+  recordedOn: z.iso.date().optional(),
+  completed: z.boolean(),
+  enjoyment: z.number().int().min(1).max(5),
+  difficulty: z.number().int().min(1).max(5),
+  reflection: z.string().trim().max(500),
+}).strict();
+export type ActivityLog = z.infer<typeof activityLogSchema>;
+
+export const refreshRequestSchema = z.object({
+  profile: profileSchema,
+  previousHobbyIds: z.array(z.string().min(1).max(64)).length(3),
+  retainedHobbyId: z.string().min(1).max(64).optional(),
+  feedback: z.array(z.object({
+    hobbyId: z.string().min(1).max(64),
+    enjoyment: z.number().int().min(1).max(5),
+    difficulty: z.number().int().min(1).max(5),
+    reflection: z.string().trim().max(160).optional(),
+  }).strict()).max(3),
+}).strict().refine((body) => new Set(body.previousHobbyIds).size === 3);
+export type RefreshRequest = z.infer<typeof refreshRequestSchema>;

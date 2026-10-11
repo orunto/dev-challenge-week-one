@@ -8,6 +8,7 @@ import { z } from 'zod';
 import {
   chatRequestSchema,
   preferenceRequestSchema,
+  refreshRequestSchema,
   recommendationRequestSchema,
   type ChatEvent,
 } from '@hobbymaxx/shared';
@@ -23,6 +24,8 @@ import {
   parseRecommendations,
   recommendationFormat,
   recommendationMessages,
+  refreshProfile,
+  refreshMessages,
 } from './prompts.js';
 import { InferenceQueue } from './queue.js';
 
@@ -311,6 +314,33 @@ export async function buildApp(
           'INFERENCE_TIMEOUT',
           'Gemma took too long. Please try again.',
         );
+      }
+      throw error;
+    } finally {
+      held?.release();
+      connection.cleanup();
+    }
+  });
+
+  app.post('/api/refresh', async (request, reply) => {
+    const body = refreshRequestSchema.parse(request.body);
+    const effectiveProfile = refreshProfile(body);
+    const messages = refreshMessages(body, effectiveProfile);
+    validateBudget(messages, body);
+    const connection = lifecycle(request, reply);
+    let held: Awaited<ReturnType<typeof lease>> | undefined;
+    try {
+      held = await lease(connection.signal);
+      const result = await client.generate(messages, held.signal, undefined, recommendationFormat(effectiveProfile));
+      const output = parseRecommendations(result.content, effectiveProfile);
+      if (body.retainedHobbyId && !output.recommendations.some((item) => item.hobbyId === body.retainedHobbyId)) {
+        throw new AppError(502, 'INVALID_MODEL_OUTPUT', 'Gemma did not preserve your selected favorite. Please retry.');
+      }
+      log({ event: 'refresh_completed', requestId: request.id, elapsedMs: result.metrics.inferenceMs });
+      return { ...output, metrics: { queueMs: held.queueMs, ...result.metrics } };
+    } catch (error) {
+      if (held?.timeout.aborted) {
+        throw new AppError(504, 'INFERENCE_TIMEOUT', 'Gemma took too long. Please try again.');
       }
       throw error;
     } finally {

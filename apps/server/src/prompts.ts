@@ -6,6 +6,7 @@ import {
   type PreferenceDraft,
   type Profile,
   type Recommendations,
+  type RefreshRequest,
 } from '@hobbymaxx/shared';
 import { z } from 'zod';
 import { AppError } from './errors.js';
@@ -122,4 +123,32 @@ export function parseRecommendations(content: string, profile?: Profile): Recomm
       'Gemma could not produce valid hobby recommendations. Please retry.',
     );
   }
+}
+
+export function refreshProfile(request: RefreshRequest): Profile {
+  if (request.previousHobbyIds.some((id) => !hobbyIds.has(id)) ||
+    request.feedback.some((item) => !request.previousHobbyIds.includes(item.hobbyId)) ||
+    (request.retainedHobbyId && !request.previousHobbyIds.includes(request.retainedHobbyId)) ||
+    (request.retainedHobbyId && request.profile.excludedHobbyIds?.includes(request.retainedHobbyId))) {
+    throw new AppError(400, 'INVALID_REQUEST', 'Please check the previous hobbies and retained favorite.');
+  }
+  const profile = {
+    ...request.profile,
+    excludedHobbyIds: [...new Set([
+      ...(request.profile.excludedHobbyIds ?? []),
+      ...request.previousHobbyIds.filter((id) => id !== request.retainedHobbyId),
+    ])],
+  };
+  const eligible = eligibleHobbies(profile);
+  if (request.retainedHobbyId && !eligible.some((hobby) => hobby.id === request.retainedHobbyId)) {
+    throw new AppError(400, 'INVALID_REQUEST', 'Your favorite no longer fits the current constraints.');
+  }
+  return profile;
+}
+
+export function refreshMessages(request: RefreshRequest, profile: Profile): ModelMessage[] {
+  const messages = recommendationMessages(profile);
+  messages[0]!.content += ` This is a new cycle. Use enjoyment (1=low,5=high), difficulty (1=easy,5=hard), and reflections to adapt suggestions. ${request.retainedHobbyId ? `You MUST include ${request.retainedHobbyId} once and choose two new hobbies.` : 'Choose three new hobbies.'}`;
+  messages[1]!.content = JSON.stringify({ profile: request.profile, feedback: request.feedback });
+  return messages;
 }

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { preferenceDraftSchema, recommendationsSchema, type ChatMessage, type PreferenceDraft, type Profile } from '@hobbymaxx/shared';
+import { preferenceDraftSchema, recommendationsSchema, type ChatMessage, type PreferenceDraft, type Profile, type RefreshRequest } from '@hobbymaxx/shared';
 
 const encoder = new TextEncoder();
 const eventSchema = z.discriminatedUnion('type', [
@@ -179,6 +179,16 @@ export async function requestRecommendations(profile: Profile, signal: AbortSign
   const value = await response.json();
   const result = recommendationsSchema.safeParse({ recommendations: value?.recommendations });
   if (!result.success) {
+    throw new ApiError('INVALID_MODEL_OUTPUT');
+  }
+  return result.data;
+}
+
+export async function requestRefresh(body: RefreshRequest, signal: AbortSignal) {
+  const response = await post('/api/refresh', body, signal);
+  const value = await response.json();
+  const result = recommendationsSchema.safeParse({ recommendations: value?.recommendations });
+  if (!result.success || (body.retainedHobbyId && !result.data.recommendations.some((item) => item.hobbyId === body.retainedHobbyId))) {
     throw new ApiError('INVALID_MODEL_OUTPUT');
   }
   return result.data;

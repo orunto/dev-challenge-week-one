@@ -169,6 +169,20 @@ summary { min-height: 44px; padding: 12px 0; cursor: pointer; font-weight: 600; 
 .activity-detail h4 { margin: 20px 0 8px; font-size: 0.9375rem; }
 .activity-detail ul { padding-left: 20px; line-height: 1.6; }
 @media (max-width: 900px) { .experiment-grid { grid-template-columns: 1fr; } }
+.reward-badge { background: var(--color-reward-surface); color: var(--color-reward-text); padding: 8px 16px; border-radius: 9999px; font-family: var(--font-label); font-size: 0.75rem; }
+.refresh-panel { margin-top: 24px; padding: 24px 0; border-top: 1px solid var(--color-border); }
+.refresh-panel h3 { font-size: 1.75rem; }
+.refresh-panel p { max-width: 70ch; font-size: 0.875rem; }
+.refresh-panel label { display: block; margin: 20px 0 8px; font-weight: 600; }
+.refresh-panel select { max-width: 420px; display: block; margin-bottom: 16px; }
+.activity-form { margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--color-border); }
+.activity-form .field { margin-top: 20px; }
+.activity-form > .button { width: 100%; }
+.history { margin-top: 32px; border-top: 1px solid var(--color-border); }
+.history section { padding: 24px 0; border-bottom: 1px solid var(--color-border); }
+.history h3 { font-size: 1.5rem; }
+.history ul { padding-left: 20px; line-height: 1.7; }
+.history li { padding: 12px 0; }
 
 @media (max-width: 900px) {
   .app { padding: 0 24px; }

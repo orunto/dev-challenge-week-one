@@ -46,7 +46,7 @@ Fastify will serve the built frontend and API from the same origin. Ollama will 
 
 **Phase two is implemented in source, with user-run verification pending.** The React/Vite onboarding flow, editable preference review, IndexedDB history/resume, and separate model profile-extraction endpoint are written. Dependencies/lockfile installation, formatting, type checks, tests, real-Gemma extraction review, and mobile/browser verification have not been run. See [`docs/phase-two.md`](docs/phase-two.md).
 
-**Phase three is implemented in source, with verification pending.** Grounded experiment cards, first activities, catalog metadata, client validation, explicit cycle dates, and transactional current-cycle saving are written. Phases four through six are pending. Deployment for phase-one measurements may happen before the final deployment milestone; provisioning paid resources requires explicit approval.
+**Phases three and four are implemented in source, with verification pending.** Experiment cards, current-cycle persistence, activity/reflection logging, derived points, due-date checks, retained favorites, feedback-informed refreshes, and history are written. Phases five and six are pending. Deployment for phase-one measurements may happen before the final deployment milestone; provisioning paid resources requires explicit approval.
 
 **Execution preference:** Git inspection, staging, and explicitly approved commits are authorized. The user runs all other processes, including installs, formatting, tests, builds, benchmarks, development servers, and Docker checks. Show the exact drafted message and obtain approval before each commit; use the configured identity without overrides. Remote pushes and paid deployment require separate explicit permission.
 
@@ -136,15 +136,16 @@ Users receive three usable experiments consistent with their preferences, can vi
 
 ### Deliverables
 
-- Log the activity, attempt date, enjoyment, difficulty, and an optional reflection.
-- Award **10 points for completing a starter activity**, once per activity per cycle.
-- Allow additional attempts to be logged without duplicate point awards.
-- Calculate points from activity records to prevent totals drifting from history.
-- Store explicit cycle start/due dates and check them when the app opens.
-- Offer a Gemma-generated refresh after 7 or 14 days using the confirmed profile and relevant feedback.
-- Let users retain a favorite hobby while exploring new suggestions.
-- Save a new cycle only after successful generation; preserve previous cycles and activity history.
-- Support offline activity logging and later online recommendation refreshes.
+- [x] Log activity, attempt date, enjoyment, difficulty, and optional reflection.
+- [x] Derive **10 completion points** once per starter activity per cycle.
+- [x] Keep additional attempts without duplicate point awards; deduplicate retried submission IDs.
+- [x] Calculate all points from activity records rather than mutable totals.
+- [x] Store start/due instants and local calendar dates; check due state on open, visibility changes, and a bounded timer.
+- [x] Offer Gemma refresh after 7/14 days using current preferences and recent feedback.
+- [x] Validate a retained favorite and require new alternatives for other selections.
+- [x] Commit successful refreshes transactionally and preserve previous cycles/logs on failure.
+- [x] Support offline logging in an already-loaded app; refresh requires internet.
+- [ ] Verify duplicate submissions, date/timezone boundaries, concurrent refreshes, real-Gemma feedback quality, and offline browser behavior (user-run).
 
 ### Exit criterion
 
