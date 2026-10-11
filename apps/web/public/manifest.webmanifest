@@ -1,0 +1,14 @@
+{
+  "id": "/",
+  "name": "HobbyMaxx",
+  "short_name": "HobbyMaxx",
+  "description": "Find hobby experiments that fit your life, and keep your exploration history on this browser.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f2f2eb",
+  "theme_color": "#3d5f58",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

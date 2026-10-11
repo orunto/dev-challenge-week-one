@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { activityLogSchema, cycleSchema, recommendationsSchema, type ActivityLog, type Cycle, type CycleDays, type Profile } from '@hobbymaxx/shared';
 import { hobbies } from '@hobbymaxx/hobby-catalog';
-import { openDatabase, StorageError } from './storage.js';
+import { assertDataGeneration, assertStorageWriteToken, openDatabase, storageWriteToken, StorageError } from './storage.js';
 
 export const librarySchema = z.object({
   version: z.literal(1),
@@ -67,15 +67,19 @@ export async function loadLibrary(): Promise<Library> {
 
 export async function saveNewCycle(cycle: Cycle, expectedCurrentId?: string | null): Promise<Library> {
   validateCycle(cycle);
+  const token = storageWriteToken();
   const database = await openDatabase();
   try {
     return await new Promise<Library>((resolve, reject) => {
-      const transaction = database.transaction('library', 'readwrite');
+      const transaction = database.transaction(['library', 'metadata'], 'readwrite');
       const store = transaction.objectStore('library');
+      const generation = transaction.objectStore('metadata').get('generation');
       const request = store.get('current');
       let next: Library;
       request.onsuccess = () => {
         try {
+          assertStorageWriteToken(token);
+          assertDataGeneration(generation.result);
           const current = request.result === undefined ? emptyLibrary() : librarySchema.parse(request.result);
           if (expectedCurrentId !== undefined && current.currentCycleId !== expectedCurrentId) {
             throw new Error('The active cycle changed in another tab');
@@ -131,15 +135,19 @@ export function appendActivity(library: Library, log: ActivityLog): Library {
 }
 
 export async function saveActivity(log: ActivityLog): Promise<Library> {
+  const token = storageWriteToken();
   const database = await openDatabase();
   try {
     return await new Promise<Library>((resolve, reject) => {
-      const transaction = database.transaction('library', 'readwrite');
+      const transaction = database.transaction(['library', 'metadata'], 'readwrite');
       const store = transaction.objectStore('library');
+      const generation = transaction.objectStore('metadata').get('generation');
       const request = store.get('current');
       let next: Library;
       request.onsuccess = () => {
         try {
+          assertStorageWriteToken(token);
+          assertDataGeneration(generation.result);
           const current = librarySchema.parse(request.result);
           next = appendActivity(current, log);
           store.put(next, 'current');

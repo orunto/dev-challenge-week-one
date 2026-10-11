@@ -1,23 +1,38 @@
-import { useEffect, useRef, type RefObject } from 'react';
+import { useEffect, useRef, useState, type RefObject } from 'react';
 import { hobbies } from '@hobbymaxx/hobby-catalog';
 import type { CycleDays } from '@hobbymaxx/shared';
 import { BrandMark, Button, Field, WelcomeArtwork } from './components.js';
 import type { ReviewForm } from './session.js';
 import { useOnboarding } from './useOnboarding.js';
 import { Experiments } from './Experiments.js';
+import { PrivacyPanel } from './PrivacyPanel.js';
 
 type Onboarding = ReturnType<typeof useOnboarding>;
 
 export function App() {
   const onboarding = useOnboarding();
   const { session, loaded, storage, busy } = onboarding;
+  const [privacyOpen, setPrivacyOpen] = useState(false);
+  const [productBusy, setProductBusy] = useState(false);
+  const [offlineReady, setOfflineReady] = useState(false);
+  const [update, setUpdate] = useState<ServiceWorkerRegistration | null>(null);
   const heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
     if (loaded) {
       heading.current?.focus();
       window.scrollTo({ top: 0, behavior: 'auto' });
     }
-  }, [session.screen, loaded]);
+  }, [session.screen, loaded, privacyOpen]);
+  useEffect(() => {
+    const ready = () => setOfflineReady(true);
+    const available = (event: Event) => setUpdate((event as CustomEvent<ServiceWorkerRegistration>).detail);
+    window.addEventListener('hobbymaxx-offline-ready', ready);
+    window.addEventListener('hobbymaxx-update', available);
+    return () => {
+      window.removeEventListener('hobbymaxx-offline-ready', ready);
+      window.removeEventListener('hobbymaxx-update', available);
+    };
+  }, []);
 
   const phase = session.screen === 'welcome' ? 0 : session.screen === 'conversation' ? 1 : 2;
   return (
@@ -28,8 +43,16 @@ export function App() {
         <span className="save-label" role="status">
           {storage === 'loading' ? 'Opening local history…' : storage === 'saving' ? 'Saving on this browser…' : storage === 'saved' ? 'Saved on this browser' : storage === 'session-only' ? 'Session only · not saved' : 'Local saving unavailable'}
         </span>
+        <Button variant="quiet" disabled={!loaded || busy || productBusy} onClick={() => setPrivacyOpen(true)}>Privacy & data</Button>
       </header>
       <main id="main">
+        {update && <div className="connection-banner"><p>A new app version is ready. Reloading interrupts active requests.</p><Button variant="secondary" disabled={busy || storage === 'saving'} onClick={() => {
+          if (productBusy) {
+            return;
+          }
+          navigator.serviceWorker.addEventListener('controllerchange', () => window.location.reload(), { once: true });
+          update.waiting?.postMessage('activate-update');
+        }}>Update and reload</Button></div>}
         {!loaded ? (
           <div className="loading-screen"><h1 ref={heading} tabIndex={-1}>A little room to explore.</h1><p>Opening your saved preferences…</p></div>
         ) : (
@@ -44,7 +67,7 @@ export function App() {
                 </div>
               </section>
             )}
-            {session.screen !== 'welcome' && (
+            {!privacyOpen && session.screen !== 'welcome' && (
               <nav className="steps" aria-label="Onboarding progress">
                 <ol>
                   <li className="step--done">Welcome <span className="sr-only">completed</span></li>
@@ -54,14 +77,16 @@ export function App() {
               </nav>
             )}
             {!onboarding.online && <p className="connection-banner">You’re offline. You can edit and save preferences locally; Gemma needs internet.</p>}
-            {session.screen === 'welcome' && <Welcome onboarding={onboarding} heading={heading} />}
-            {session.screen === 'conversation' && <Conversation onboarding={onboarding} heading={heading} />}
-            {session.screen === 'review' && <Review onboarding={onboarding} heading={heading} />}
-            {session.screen === 'confirmed' && <Confirmed onboarding={onboarding} heading={heading} />}
+            {privacyOpen ? <PrivacyPanel session={session} sessionOnly={storage === 'session-only'} onBegin={onboarding.beginDataChange} onChanged={onboarding.finishDataChange} onBack={() => setPrivacyOpen(false)} /> : <>
+              {session.screen === 'welcome' && <Welcome onboarding={onboarding} heading={heading} />}
+              {session.screen === 'conversation' && <Conversation onboarding={onboarding} heading={heading} />}
+              {session.screen === 'review' && <Review onboarding={onboarding} heading={heading} />}
+              {session.screen === 'confirmed' && <Confirmed onboarding={onboarding} heading={heading} productBusy={productBusy} onProductBusy={setProductBusy} />}
+            </>}
           </>
         )}
       </main>
-      <footer className="app-footer"><span>Try things. Keep what fits.</span><span>No accounts. No streaks. Your pace.</span></footer>
+      <footer className="app-footer"><span>Try things. Keep what fits.</span><span>{offlineReady ? 'App ready offline · AI needs internet' : 'No accounts. No streaks. Your pace.'}</span></footer>
     </div>
   );
 }
@@ -232,7 +257,7 @@ function Review({ onboarding, heading }: ScreenProps) {
   );
 }
 
-function Confirmed({ onboarding, heading }: ScreenProps) {
+function Confirmed({ onboarding, heading, productBusy, onProductBusy }: ScreenProps & { productBusy: boolean; onProductBusy: (busy: boolean) => void }) {
   const { session } = onboarding;
   const profile = session.confirmedProfile;
   if (!profile) {
@@ -294,17 +319,17 @@ function Confirmed({ onboarding, heading }: ScreenProps) {
           Your confirmed profile guides Gemma’s next suggestions. A cycle starts only after
           a complete, validated set of experiments is saved.
         </p>
-        <Button variant="secondary" disabled={onboarding.busy} onClick={() => onboarding.go('review')}>
+        <Button variant="secondary" disabled={onboarding.busy || productBusy} onClick={() => onboarding.go('review')}>
           Edit my preferences
         </Button>
         {session.messages.length > 0 && (
-          <Button variant="quiet" disabled={onboarding.busy} onClick={() => onboarding.go('conversation')}>
+          <Button variant="quiet" disabled={onboarding.busy || productBusy} onClick={() => onboarding.go('conversation')}>
             Return to conversation
           </Button>
         )}
       </div>
     </section>
-    <Experiments profile={profile} days={session.cycleDays} sessionOnly={onboarding.storage === 'session-only'} />
+    <Experiments profile={profile} days={session.cycleDays} sessionOnly={onboarding.storage === 'session-only'} onBusy={onProductBusy} />
     </>
   );
 }

@@ -46,7 +46,7 @@ Fastify will serve the built frontend and API from the same origin. Ollama will 
 
 **Phase two is implemented in source, with user-run verification pending.** The React/Vite onboarding flow, editable preference review, IndexedDB history/resume, and separate model profile-extraction endpoint are written. Dependencies/lockfile installation, formatting, type checks, tests, real-Gemma extraction review, and mobile/browser verification have not been run. See [`docs/phase-two.md`](docs/phase-two.md).
 
-**Phases three and four are implemented in source, with verification pending.** Experiment cards, current-cycle persistence, activity/reflection logging, derived points, due-date checks, retained favorites, feedback-informed refreshes, and history are written. Phases five and six are pending. Deployment for phase-one measurements may happen before the final deployment milestone; provisioning paid resources requires explicit approval.
+**Phases three through five are implemented in source, with verification pending.** The core loop, privacy/data controls, database migrations, validated export/import, stale-write protection, and offline app-shell/PWA source are written. Phase six deployment preparation is next; provisioning paid resources requires explicit approval.
 
 **Execution preference:** Git inspection, staging, and explicitly approved commits are authorized. The user runs all other processes, including installs, formatting, tests, builds, benchmarks, development servers, and Docker checks. Show the exact drafted message and obtain approval before each commit; use the configured identity without overrides. Remote pushes and paid deployment require separate explicit permission.
 
@@ -155,15 +155,17 @@ The complete loop works: conversation → experiments → attempts → points �
 
 ### Deliverables
 
-- Version IndexedDB records and introduce migrations for preferences, conversations, cycles, and activity logs.
-- Provide conversation deletion, clear-all-local-data, and versioned JSON export/import.
-- Explain that exports can contain personal information and validate imported data.
-- Handle unavailable/quota-limited storage and missing local history.
-- Verify that prompts, replies, profiles, and content-bearing errors never enter application logs or the persistent model disk.
-- Keep inference context isolated between users and bound requests, queues, and execution time.
-- Verify cancellation, disconnects, unavailable inference, malformed output, and queue saturation throughout the UI.
-- Use accurate privacy copy: local history does not mean on-device or end-to-end encrypted inference.
-- Add PWA installation metadata and offline app-shell caching without caching inference requests or responses in the service worker.
+- [x] Version local records and migrate database versions 1→2→3 without erasing onboarding/history; legacy libraries default missing logs to empty.
+- [x] Provide raw-conversation deletion, clear-all-local-data, and versioned JSON export/import.
+- [x] Warn about personal export content; validate schema, catalog references, dates, duplicates, and import size before atomic replacement.
+- [x] Show unavailable/quota-limited storage and missing-history recovery paths.
+- [ ] Verify logs/network/model-disk retention behavior against real execution (user-run).
+- [x] Preserve bounded request isolation, queueing, cancellation, and execution limits in model operations.
+- [ ] Verify cancellation, disconnects, malformed output, unavailable inference, and saturation throughout the browser UI (user-run).
+- [x] Use accurate hosted-processing/local-history privacy copy.
+- [x] Add installation metadata and an asset-allowlisted offline worker; inference/health/external/write requests bypass it.
+- [x] Protect clear/import from queued autosaves and stale tabs with transactional data-generation checks.
+- [ ] Verify migrations, stale tabs, import rollback, storage recovery, service-worker updates, installation, offline reload, and accessibility in browsers (user-run).
 
 ### Exit criterion
 

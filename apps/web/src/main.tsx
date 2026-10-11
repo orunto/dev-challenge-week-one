@@ -17,3 +17,23 @@ createRoot(root).render(
     <App />
   </React.StrictMode>,
 );
+
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    void navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).then((registration) => {
+      if (registration.waiting) {
+        window.dispatchEvent(new CustomEvent('hobbymaxx-update', { detail: registration }));
+      }
+      registration.addEventListener('updatefound', () => {
+        registration.installing?.addEventListener('statechange', () => {
+          if (registration.waiting && navigator.serviceWorker.controller) {
+            window.dispatchEvent(new CustomEvent('hobbymaxx-update', { detail: registration }));
+          }
+        });
+      });
+      return navigator.serviceWorker.ready;
+    }).then(() => window.dispatchEvent(new Event('hobbymaxx-offline-ready'))).catch(() => {
+      window.dispatchEvent(new Event('hobbymaxx-offline-failed'));
+    });
+  });
+}

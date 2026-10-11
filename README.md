@@ -2,13 +2,13 @@
 
 An open-weight Gemma-powered hobby discovery app. Tell the agent about yourself, try three personalized hobby experiments, log attempts, earn points, and refresh recommendations every 7 or 14 days.
 
-## Current status: phase two source implemented; verification pending
+## Current status: core loop and privacy/PWA source implemented; verification pending
 
 Implemented: TypeScript workspace, Fastify API, Ollama streaming adapter, grounded structured recommendations, bounded queue, cancellation/timeouts, privacy-safe operational logging, a synthetic benchmark runner, automated tests, and Render container configuration.
 
 Phase two adds a React/Vite welcome, conversation, editable preference review, and confirmed-profile flow; IndexedDB local history/resume; a separate validated Gemma preference-extraction operation; and same-origin frontend serving. These changes have not been installed, built, tested, or visually reviewed yet. See [`docs/phase-two.md`](docs/phase-two.md).
 
-Hobby experiments, activity logging, points, active cycles, and PWA/offline app-shell caching remain later milestones. The full roadmap is in [`plan.md`](plan.md), and the approved UI specification is in [`design.md`](design.md).
+Phases three through five add grounded experiment cards, saved cycles, activity/reflection logging, derived points, feedback-informed refreshes with an optional retained favorite, history, privacy controls, validated JSON export/import, and offline app-shell/PWA source. These additions are also unverified. The full roadmap is in [`plan.md`](plan.md), and the approved UI specification is in [`design.md`](design.md).
 
 **Real Gemma CPU baseline benchmarks are recorded, but phase-one verification is still open.** Sequential requests completed 10/10; the three-client run completed 3/10 and timed out seven queued requests. Baseline review identified constraint violations, prompting eligibility filtering and model-digest enforcement. The post-change rerun was interrupted, so final checks and updated quality review are pending. Docker/Render performance and total container peak memory remain unverified. See [`docs/phase-one-results.md`](docs/phase-one-results.md) and [`docs/phase-one.md`](docs/phase-one.md).
 
@@ -97,6 +97,7 @@ bun run benchmark --cases low-energy-accessibility,conflicting-preferences --sav
 | `POST /api/chat`            | Onboarding replies as newline-delimited JSON events                                          |
 | `POST /api/preferences`     | Validated preference draft from user-supplied conversation; unstated choices stay null        |
 | `POST /api/recommendations` | Validated three-hobby recommendations with timing metrics                                    |
+| `POST /api/refresh`         | Validated new-cycle recommendations from profile/feedback, with optional retained favorite   |
 
 Chat request:
 
@@ -138,7 +139,7 @@ The response contains `recommendations` (three distinct catalog IDs, rationale, 
 
 [`render.yaml`](render.yaml) describes one paid Docker service with a 2 GB persistent model disk, initially on the `1c-2g` compute tier. This file alone does not provision anything. Deployment, spending, commits, and pushes require separate approval.
 
-The container is configured to build and serve the React frontend alongside the API and local-only Ollama, download the model if missing, and keep model files under `/var/data/models`. `/health` stays available during installation; `/ready` distinguishes model availability. This updated container configuration has not been built or tested. The frontend does not yet have a service worker or installation metadata.
+The container is configured to build and serve the React PWA alongside the API and local-only Ollama, download the model if missing, and keep model files under `/var/data/models`. `/health` stays available during installation; `/ready` distinguishes model availability. This updated container configuration has not been built or tested. The offline worker is generated during production builds and registered only in production on a secure origin (or localhost).
 
 Runtime images are version-pinned. Gemma 3 1B is pinned to the evaluated manifest digest in the shared model metadata, environment example, and Render configuration. Model status verification rejects a mismatched artifact before inference; the container supervisor checks it after installation. Changing the model requires a matching `MODEL_DIGEST`. Existing model files are reused instead of repulled on every restart.
 
@@ -157,6 +158,8 @@ This demo is designed for hosted processing with local user history. The phase-o
 
 Messages still reach the server in plaintext after TLS termination. This is not on-device inference or end-to-end encrypted inference, and application controls are not a guarantee about all infrastructure behavior. Ollama may retain transient model caches in memory; a request-isolation test verifies supplied context, not secure memory erasure.
 
-Only model files belong on the persistent disk, which Render snapshots. The browser now stores onboarding messages, the unsent answer, preference edits, the confirmed profile, and cycle-length choice in a versioned IndexedDB record. Confirmation can discard raw messages and the unsent answer. Unsupported/corrupt history is preserved rather than silently overwritten; storage failures offer explicit session-only operation. No analytics, external inference provider, or accounts are included.
+Only model files belong on the persistent disk, which Render snapshots. Browser IndexedDB stores onboarding, preferences, cycles, and attempts. Points derive from unique completed starters, not an editable total. Privacy controls can remove raw conversations, atomically replace history from a validated export, or clear all local records. Transactional generation checks reject stale tabs trying to restore pre-clear data; reload other tabs after clear/import. Unsupported/corrupt history is preserved rather than silently overwritten, and storage failures offer explicit session-only operation. No analytics, external inference provider, or accounts are included.
+
+Production app-shell caching is limited to built static assets and the root HTML. `/api`, health/readiness, external URLs, and non-GET requests bypass the worker. Visit online once to prepare offline loading; saved cycles and activity logging then work offline. New model operations require internet. Downloaded exports can contain personal information and are unaffected by local deletion.
 
 Rate limiting currently uses the immediate connection IP and does not trust forwarded headers. On Render this may conservatively group users behind the same proxy. Validate Render's trusted proxy topology before changing that setting; do not blindly trust arbitrary client-supplied forwarding headers.

@@ -6,17 +6,22 @@ import { errorCopy, requestRecommendations, requestRefresh } from './api.js';
 import { appendActivity, emptyLibrary, isDue, loadLibrary, makeCycle, points, saveActivity, saveNewCycle, type Library } from './library.js';
 import { ActivityForm } from './ActivityForm.js';
 
-export function Experiments({ profile, days, sessionOnly }: { profile: Profile; days: CycleDays; sessionOnly: boolean }) {
+export function Experiments({ profile, days, sessionOnly, onBusy }: { profile: Profile; days: CycleDays; sessionOnly: boolean; onBusy: (busy: boolean) => void }) {
   const [library, setLibrary] = useState<Library>(emptyLibrary);
   const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [logging, setLogging] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [selected, setSelected] = useState<string | null>(null);
   const [retained, setRetained] = useState('');
   const [now, setNow] = useState(Date.now);
   const controller = useRef<AbortController | null>(null);
+  useEffect(() => {
+    onBusy(busy || logging);
+    return () => onBusy(false);
+  }, [busy, logging, onBusy]);
   useEffect(() => {
     let alive = true;
     if (sessionOnly) {
@@ -111,11 +116,16 @@ export function Experiments({ profile, days, sessionOnly }: { profile: Profile; 
   }
 
   async function logActivity(log: ActivityLog) {
+    setLogging(true);
+    try {
     const before = points(library.logs);
     const next = sessionOnly ? appendActivity(library, log) : await saveActivity(log);
     setLibrary(next);
     const earned = points(next.logs) - before;
     setNotice(`${sessionOnly ? 'Attempt recorded for this session.' : 'Attempt saved.'} ${earned > 0 ? `You earned ${earned} points.` : 'No duplicate points awarded; every attempt is still worth recording.'}`);
+    } finally {
+      setLogging(false);
+    }
   }
   return (
     <section className="experiments" aria-labelledby="experiments-heading">

@@ -3,7 +3,7 @@ import { profileSchema, type PreferenceDraft } from '@hobbymaxx/shared';
 import { hobbies } from '@hobbymaxx/hobby-catalog';
 import { ApiError, boundedContext, errorCopy, extractPreferences, serviceStatus, streamChat } from './api.js';
 import { message, newSession, type ReviewForm, type Session } from './session.js';
-import { loadSession, saveSession } from './storage.js';
+import { loadSession, pauseStorageWrites, resumeStorageWrites, saveSession } from './storage.js';
 
 export type Operation = 'idle' | 'waiting' | 'generating' | 'extracting' | 'saving';
 type StorageState = 'loading' | 'saving' | 'saved' | 'error' | 'session-only';
@@ -43,6 +43,7 @@ export function useOnboarding() {
   const mounted = useRef(true);
   const sessionOnly = useRef(false);
   const historyLoaded = useRef(false);
+  const privacyPaused = useRef(false);
 
   useEffect(() => {
     mounted.current = true;
@@ -68,12 +69,12 @@ export function useOnboarding() {
   }, []);
 
   useEffect(() => {
-    if (!loaded || !historyLoaded.current || sessionOnly.current) {
+    if (!loaded || !historyLoaded.current || sessionOnly.current || privacyPaused.current) {
       return;
     }
     const sequence = ++saveSequence.current;
     setStorage('saving');
-    saveSession(session).then(() => {
+    Promise.resolve().then(() => saveSession(session)).then(() => {
       if (mounted.current && sequence === saveSequence.current) {
         setStorage('saved');
       }
@@ -370,11 +371,32 @@ export function useOnboarding() {
     setNotice('Local saving is off. This session will be lost when you close or reload the page.');
   }
 
+  async function beginDataChange() {
+    active.current?.abort();
+    privacyPaused.current = true;
+    saveSequence.current++;
+    await pauseStorageWrites();
+  }
+
+  function finishDataChange(next?: Session | null) {
+    if (next !== undefined) {
+      setSession(next ?? newSession());
+      historyLoaded.current = true;
+      sessionOnly.current = false;
+      setStorage('saved');
+      setError('');
+      setNotice('');
+    }
+    privacyPaused.current = false;
+    resumeStorageWrites();
+  }
+
   const retryChat = session.messages.filter((item) => item.status === 'complete').at(-1)?.role === 'user';
   return {
     session, loaded, storage, operation, availability, online, error, notice, partial,
     omitted, fieldErrors, busy, retryChat, update, go, chat, reviewWithGemma,
     confirm, retryStorage, continueWithoutSaving, checkService,
+    beginDataChange, finishDataChange,
     cancel: () => active.current?.abort(),
   };
 }
