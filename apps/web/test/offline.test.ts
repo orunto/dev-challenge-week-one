@@ -6,7 +6,12 @@ import { serviceWorkerSource } from '../src/offline-worker.js';
 test('offline worker bypasses inference, external requests, writes, and unlisted URLs', () => {
   const handlers: Record<string, (event: unknown) => void> = {};
   runInNewContext(serviceWorkerSource(['/', '/index.html', '/assets/app.js'], 'test'), {
-    self: { location: { origin: 'https://hobbymaxx.test' }, addEventListener: (type: string, handler: (event: unknown) => void) => { handlers[type] = handler; } },
+    self: {
+      location: { origin: 'https://hobbymaxx.test' },
+      addEventListener: (type: string, handler: (event: unknown) => void) => {
+        handlers[type] = handler;
+      },
+    },
     URL,
   });
   for (const [method, url] of [
@@ -17,7 +22,12 @@ test('offline worker bypasses inference, external requests, writes, and unlisted
     ['GET', 'https://hobbymaxx.test/private-export.json'],
   ]) {
     let intercepted = false;
-    handlers.fetch!({ request: { method, url, mode: 'cors' }, respondWith: () => { intercepted = true; } });
+    handlers.fetch!({
+      request: { method, url, mode: 'cors' },
+      respondWith: () => {
+        intercepted = true;
+      },
+    });
     assert.equal(intercepted, false, `${method} ${url}`);
   }
 });

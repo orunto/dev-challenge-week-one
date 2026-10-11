@@ -49,7 +49,11 @@ function eligibleHobbies(profile: Profile) {
   const excluded = new Set(profile.excludedHobbyIds ?? []);
 
   if ([...excluded].some((id) => !hobbyIds.has(id))) {
-    throw new AppError(400, 'INVALID_REQUEST', 'Please use known hobby IDs for exclusions.');
+    throw new AppError(
+      400,
+      'INVALID_REQUEST',
+      'Please use known hobby IDs for exclusions.',
+    );
   }
 
   const eligible = hobbies.filter((hobby) => {
@@ -63,7 +67,11 @@ function eligibleHobbies(profile: Profile) {
   });
 
   if (eligible.length < 3) {
-    throw new AppError(400, 'INSUFFICIENT_OPTIONS', 'Please broaden your hobby preferences.');
+    throw new AppError(
+      400,
+      'INSUFFICIENT_OPTIONS',
+      'Please broaden your hobby preferences.',
+    );
   }
 
   return eligible;
@@ -106,7 +114,10 @@ export function recommendationMessages(profile: Profile): ModelMessage[] {
   ];
 }
 
-export function parseRecommendations(content: string, profile?: Profile): Recommendations {
+export function parseRecommendations(
+  content: string,
+  profile?: Profile,
+): Recommendations {
   try {
     const parsed = recommendationsSchema.parse(JSON.parse(content));
     const allowedIds = profile
@@ -126,29 +137,52 @@ export function parseRecommendations(content: string, profile?: Profile): Recomm
 }
 
 export function refreshProfile(request: RefreshRequest): Profile {
-  if (request.previousHobbyIds.some((id) => !hobbyIds.has(id)) ||
+  if (
+    request.previousHobbyIds.some((id) => !hobbyIds.has(id)) ||
     request.feedback.some((item) => !request.previousHobbyIds.includes(item.hobbyId)) ||
-    (request.retainedHobbyId && !request.previousHobbyIds.includes(request.retainedHobbyId)) ||
-    (request.retainedHobbyId && request.profile.excludedHobbyIds?.includes(request.retainedHobbyId))) {
-    throw new AppError(400, 'INVALID_REQUEST', 'Please check the previous hobbies and retained favorite.');
+    (request.retainedHobbyId &&
+      !request.previousHobbyIds.includes(request.retainedHobbyId)) ||
+    (request.retainedHobbyId &&
+      request.profile.excludedHobbyIds?.includes(request.retainedHobbyId))
+  ) {
+    throw new AppError(
+      400,
+      'INVALID_REQUEST',
+      'Please check the previous hobbies and retained favorite.',
+    );
   }
   const profile = {
     ...request.profile,
-    excludedHobbyIds: [...new Set([
-      ...(request.profile.excludedHobbyIds ?? []),
-      ...request.previousHobbyIds.filter((id) => id !== request.retainedHobbyId),
-    ])],
+    excludedHobbyIds: [
+      ...new Set([
+        ...(request.profile.excludedHobbyIds ?? []),
+        ...request.previousHobbyIds.filter((id) => id !== request.retainedHobbyId),
+      ]),
+    ],
   };
   const eligible = eligibleHobbies(profile);
-  if (request.retainedHobbyId && !eligible.some((hobby) => hobby.id === request.retainedHobbyId)) {
-    throw new AppError(400, 'INVALID_REQUEST', 'Your favorite no longer fits the current constraints.');
+  if (
+    request.retainedHobbyId &&
+    !eligible.some((hobby) => hobby.id === request.retainedHobbyId)
+  ) {
+    throw new AppError(
+      400,
+      'INVALID_REQUEST',
+      'Your favorite no longer fits the current constraints.',
+    );
   }
   return profile;
 }
 
-export function refreshMessages(request: RefreshRequest, profile: Profile): ModelMessage[] {
+export function refreshMessages(
+  request: RefreshRequest,
+  profile: Profile,
+): ModelMessage[] {
   const messages = recommendationMessages(profile);
   messages[0]!.content += ` This is a new cycle. Use enjoyment (1=low,5=high), difficulty (1=easy,5=hard), and reflections to adapt suggestions. ${request.retainedHobbyId ? `You MUST include ${request.retainedHobbyId} once and choose two new hobbies.` : 'Choose three new hobbies.'}`;
-  messages[1]!.content = JSON.stringify({ profile: request.profile, feedback: request.feedback });
+  messages[1]!.content = JSON.stringify({
+    profile: request.profile,
+    feedback: request.feedback,
+  });
   return messages;
 }

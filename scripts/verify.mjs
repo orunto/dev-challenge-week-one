@@ -18,5 +18,7 @@ for (const check of checks) {
   }
 }
 if (process.exitCode !== 1) {
-  console.log('Code checks completed. Real-model, browser, Docker, and deployment gates still require review.');
+  console.log(
+    'Code checks completed. Real-model, browser, Docker, and deployment gates still require review.',
+  );
 }

@@ -16,7 +16,11 @@ export function acceptDataGeneration(value: unknown) {
 
 export function assertDataGeneration(value: unknown) {
   const current = value === undefined ? 0 : Number(value);
-  if (!Number.isSafeInteger(current) || current < 0 || (dataGeneration !== null && current !== dataGeneration)) {
+  if (
+    !Number.isSafeInteger(current) ||
+    current < 0 ||
+    (dataGeneration !== null && current !== dataGeneration)
+  ) {
     throw new StorageError();
   }
   if (dataGeneration === null) {
@@ -54,7 +58,9 @@ export function resumeStorageWrites() {
 
 export class StorageError extends Error {
   constructor() {
-    super('Local history could not be read or saved. Your browser may block storage or be out of space.');
+    super(
+      'Local history could not be read or saved. Your browser may block storage or be out of space.',
+    );
   }
 }
 

@@ -107,17 +107,14 @@ test('does not disclose upstream error text', async () => {
 
 test('rejects changed model artifacts before sending a prompt', async () => {
   let chatCalls = 0;
-  const client = new OllamaClient(
-    config,
-    (async (url) => {
-      if (String(url).endsWith('/api/chat')) {
-        chatCalls++;
-      }
-      return Response.json({
-        models: [{ name: config.OLLAMA_MODEL, digest: 'unexpected' }],
-      });
-    }) as typeof fetch,
-  );
+  const client = new OllamaClient(config, (async (url) => {
+    if (String(url).endsWith('/api/chat')) {
+      chatCalls++;
+    }
+    return Response.json({
+      models: [{ name: config.OLLAMA_MODEL, digest: 'unexpected' }],
+    });
+  }) as typeof fetch);
 
   await assert.rejects(client.generate(messages, new AbortController().signal), {
     code: 'MODEL_MISMATCH',
@@ -133,6 +130,8 @@ test('an already cancelled generation does not contact the runtime', async () =>
   }) as typeof fetch);
   const controller = new AbortController();
   controller.abort();
-  await assert.rejects(client.generate(messages, controller.signal), { name: 'AbortError' });
+  await assert.rejects(client.generate(messages, controller.signal), {
+    name: 'AbortError',
+  });
   assert.equal(calls, 0);
 });

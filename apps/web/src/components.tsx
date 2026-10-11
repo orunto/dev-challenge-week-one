@@ -5,19 +5,41 @@ export function Button({
   className = '',
   type = 'button',
   ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'quiet' }) {
-  return <button type={type} className={`button button--${variant} ${className}`} {...props} />;
+}: ButtonHTMLAttributes<HTMLButtonElement> & {
+  variant?: 'primary' | 'secondary' | 'quiet';
+}) {
+  return (
+    <button type={type} className={`button button--${variant} ${className}`} {...props} />
+  );
 }
 
 export function Field({
-  id, label, hint, error, children,
-}: { id: string; label: string; hint?: string; error?: string; children: ReactNode }) {
+  id,
+  label,
+  hint,
+  error,
+  children,
+}: {
+  id: string;
+  label: string;
+  hint?: string;
+  error?: string;
+  children: ReactNode;
+}) {
   return (
     <div className="field">
       <label htmlFor={id}>{label}</label>
-      {hint && <p id={`${id}-hint`} className="field__hint">{hint}</p>}
+      {hint && (
+        <p id={`${id}-hint`} className="field__hint">
+          {hint}
+        </p>
+      )}
       {children}
-      {error && <p id={`${id}-error`} className="field__error">Error: {error}</p>}
+      {error && (
+        <p id={`${id}-error`} className="field__error">
+          Error: {error}
+        </p>
+      )}
     </div>
   );
 }
@@ -47,7 +69,10 @@ export function WelcomeArtwork() {
         <path d="M48 256h48v48H48zM160 368h48v48h-48z" />
         <circle cx="348" cy="200" r="28" />
       </g>
-      <path d="M64 320h80v16H64zM64 352h80v16H64zM64 384h80v16H64z" fill="var(--color-teal)" />
+      <path
+        d="M64 320h80v16H64zM64 352h80v16H64zM64 384h80v16H64z"
+        fill="var(--color-teal)"
+      />
     </svg>
   );
 }

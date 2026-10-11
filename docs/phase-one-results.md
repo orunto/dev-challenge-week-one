@@ -32,26 +32,26 @@ Raw reports contain synthetic fixtures only and are ignored by Git:
 
 ### Sequential run
 
-| Measurement | Observed result |
-| --- | --- |
-| Transport/schema success | 10 of 10 requests |
-| Chat completion | Approximately 9.5–13.7 seconds |
-| Warm first visible chat content | Approximately 6.0–7.0 seconds |
-| First cold chat content | Approximately 9.0 seconds |
-| First request's model loading | Approximately 2.9 seconds |
-| Recommendation completion | Approximately 51.0–69.1 seconds |
-| Generated tokens/second | Approximately 4.93–6.95 across the run |
-| Overall successful-request p50 / p95 | Approximately 13.7 / 69.1 seconds |
+| Measurement                          | Observed result                        |
+| ------------------------------------ | -------------------------------------- |
+| Transport/schema success             | 10 of 10 requests                      |
+| Chat completion                      | Approximately 9.5–13.7 seconds         |
+| Warm first visible chat content      | Approximately 6.0–7.0 seconds          |
+| First cold chat content              | Approximately 9.0 seconds              |
+| First request's model loading        | Approximately 2.9 seconds              |
+| Recommendation completion            | Approximately 51.0–69.1 seconds        |
+| Generated tokens/second              | Approximately 4.93–6.95 across the run |
+| Overall successful-request p50 / p95 | Approximately 13.7 / 69.1 seconds      |
 
 ### Three-client run
 
-| Measurement | Observed result |
-| --- | --- |
-| Completed requests | 3 of 10 |
-| Queue timeouts | 7 of 10, at approximately 30 seconds |
-| Successful chat completion | Approximately 11.1 seconds |
-| Successful recommendation completion, including queue | Approximately 91.9 and 93.2 seconds |
-| Queue state at end | Zero active, zero waiting |
+| Measurement                                           | Observed result                      |
+| ----------------------------------------------------- | ------------------------------------ |
+| Completed requests                                    | 3 of 10                              |
+| Queue timeouts                                        | 7 of 10, at approximately 30 seconds |
+| Successful chat completion                            | Approximately 11.1 seconds           |
+| Successful recommendation completion, including queue | Approximately 91.9 and 93.2 seconds  |
+| Queue state at end                                    | Zero active, zero waiting            |
 
 The queue recovered correctly, but the default timeout is poorly matched to slow recommendations when several users arrive together. Increasing the timeout alone would make users wait longer, not improve throughput. A public concurrent-user claim requires testing shorter outputs, prompt/runtime changes, or more CPU capacity on the actual deployment.
 

@@ -11,7 +11,7 @@ function crc32(bytes) {
   for (const byte of bytes) {
     value ^= byte;
     for (let bit = 0; bit < 8; bit++) {
-      value = (value >>> 1) ^ ((value & 1) ? 0xedb88320 : 0);
+      value = (value >>> 1) ^ (value & 1 ? 0xedb88320 : 0);
     }
   }
   return (value ^ 0xffffffff) >>> 0;
@@ -30,12 +30,14 @@ for (const size of [192, 512]) {
   const pixels = Buffer.alloc(size * (size * 4 + 1));
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
-      const sx = x * 64 / size;
-      const sy = y * 64 / size;
+      const sx = (x * 64) / size;
+      const sy = (y * 64) / size;
       let color = [61, 95, 88];
-      if ((sx >= 14 && sx < 24 && sy >= 15 && sy < 49) ||
-          (sx >= 40 && sx < 50 && sy >= 15 && sy < 49) ||
-          (sx >= 24 && sx < 40 && sy >= 27 && sy < 37)) {
+      if (
+        (sx >= 14 && sx < 24 && sy >= 15 && sy < 49) ||
+        (sx >= 40 && sx < 50 && sy >= 15 && sy < 49) ||
+        (sx >= 24 && sx < 40 && sy >= 27 && sy < 37)
+      ) {
         color = [242, 242, 235];
       }
       if (sx >= 40 && sx < 50 && sy >= 37 && sy < 49) {
@@ -53,8 +55,13 @@ for (const size of [192, 512]) {
   header.writeUInt32BE(size, 4);
   header[8] = 8;
   header[9] = 6;
-  await writeFile(new URL(`../apps/web/public/icons/icon-${size}.png`, import.meta.url), Buffer.concat([
-    Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
-    chunk('IHDR', header), chunk('IDAT', deflateSync(pixels)), chunk('IEND', Buffer.alloc(0)),
-  ]));
+  await writeFile(
+    new URL(`../apps/web/public/icons/icon-${size}.png`, import.meta.url),
+    Buffer.concat([
+      Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
+      chunk('IHDR', header),
+      chunk('IDAT', deflateSync(pixels)),
+      chunk('IEND', Buffer.alloc(0)),
+    ]),
+  );
 }

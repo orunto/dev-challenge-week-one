@@ -102,47 +102,76 @@ export type ChatEvent =
   | { type: 'done'; metrics: InferenceMetrics }
   | { type: 'error'; code: string; message: string };
 
-export const cycleSchema = z.object({
-  id: z.string().uuid(),
-  startedAt: z.iso.datetime(),
-  startedOn: z.iso.date().optional(),
-  dueAt: z.iso.datetime(),
-  cycleDays: cycleDaysSchema,
-  profile: profileSchema,
-  recommendations: recommendationsSchema.shape.recommendations,
-}).strict().refine((cycle) => {
-  const ids = cycle.recommendations.map((item) => item.hobbyId);
-  return new Set(ids).size === 3 &&
-    (!cycle.startedOn || Math.abs(Date.parse(cycle.startedOn) - Date.parse(cycle.startedAt.slice(0, 10))) <= 86400000) &&
-    Date.parse(cycle.dueAt) - Date.parse(cycle.startedAt) === cycle.cycleDays * 86400000;
-}, { message: 'Invalid cycle IDs or due date.' });
+export const cycleSchema = z
+  .object({
+    id: z.string().uuid(),
+    startedAt: z.iso.datetime(),
+    startedOn: z.iso.date().optional(),
+    dueAt: z.iso.datetime(),
+    cycleDays: cycleDaysSchema,
+    profile: profileSchema,
+    recommendations: recommendationsSchema.shape.recommendations,
+  })
+  .strict()
+  .refine(
+    (cycle) => {
+      const ids = cycle.recommendations.map((item) => item.hobbyId);
+      return (
+        new Set(ids).size === 3 &&
+        (!cycle.startedOn ||
+          Math.abs(
+            Date.parse(cycle.startedOn) - Date.parse(cycle.startedAt.slice(0, 10)),
+          ) <= 86400000) &&
+        Date.parse(cycle.dueAt) - Date.parse(cycle.startedAt) ===
+          cycle.cycleDays * 86400000
+      );
+    },
+    { message: 'Invalid cycle IDs or due date.' },
+  );
 
 export type Cycle = z.infer<typeof cycleSchema>;
 
-export const activityLogSchema = z.object({
-  id: z.string().uuid(),
-  cycleId: z.string().uuid(),
-  hobbyId: z.string().min(1).max(64),
-  activityId: z.string().min(1).max(100),
-  occurredOn: z.iso.date(),
-  recordedAt: z.iso.datetime(),
-  recordedOn: z.iso.date().optional(),
-  completed: z.boolean(),
-  enjoyment: z.number().int().min(1).max(5),
-  difficulty: z.number().int().min(1).max(5),
-  reflection: z.string().trim().max(500),
-}).strict().refine((log) => !log.recordedOn || Math.abs(Date.parse(log.recordedOn) - Date.parse(log.recordedAt.slice(0, 10))) <= 86400000);
-export type ActivityLog = z.infer<typeof activityLogSchema>;
-
-export const refreshRequestSchema = z.object({
-  profile: profileSchema,
-  previousHobbyIds: z.array(z.string().min(1).max(64)).length(3),
-  retainedHobbyId: z.string().min(1).max(64).optional(),
-  feedback: z.array(z.object({
+export const activityLogSchema = z
+  .object({
+    id: z.string().uuid(),
+    cycleId: z.string().uuid(),
     hobbyId: z.string().min(1).max(64),
+    activityId: z.string().min(1).max(100),
+    occurredOn: z.iso.date(),
+    recordedAt: z.iso.datetime(),
+    recordedOn: z.iso.date().optional(),
+    completed: z.boolean(),
     enjoyment: z.number().int().min(1).max(5),
     difficulty: z.number().int().min(1).max(5),
-    reflection: z.string().trim().max(160).optional(),
-  }).strict()).max(3),
-}).strict().refine((body) => new Set(body.previousHobbyIds).size === 3);
+    reflection: z.string().trim().max(500),
+  })
+  .strict()
+  .refine(
+    (log) =>
+      !log.recordedOn ||
+      Math.abs(Date.parse(log.recordedOn) - Date.parse(log.recordedAt.slice(0, 10))) <=
+        86400000,
+  );
+export type ActivityLog = z.infer<typeof activityLogSchema>;
+
+export const refreshRequestSchema = z
+  .object({
+    profile: profileSchema,
+    previousHobbyIds: z.array(z.string().min(1).max(64)).length(3),
+    retainedHobbyId: z.string().min(1).max(64).optional(),
+    feedback: z
+      .array(
+        z
+          .object({
+            hobbyId: z.string().min(1).max(64),
+            enjoyment: z.number().int().min(1).max(5),
+            difficulty: z.number().int().min(1).max(5),
+            reflection: z.string().trim().max(160).optional(),
+          })
+          .strict(),
+      )
+      .max(3),
+  })
+  .strict()
+  .refine((body) => new Set(body.previousHobbyIds).size === 3);
 export type RefreshRequest = z.infer<typeof refreshRequestSchema>;

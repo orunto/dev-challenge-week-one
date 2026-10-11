@@ -1,5 +1,12 @@
 import { z } from 'zod';
-import { preferenceDraftSchema, recommendationsSchema, type ChatMessage, type PreferenceDraft, type Profile, type RefreshRequest } from '@hobbymaxx/shared';
+import {
+  preferenceDraftSchema,
+  recommendationsSchema,
+  type ChatMessage,
+  type PreferenceDraft,
+  type Profile,
+  type RefreshRequest,
+} from '@hobbymaxx/shared';
 
 const encoder = new TextEncoder();
 const eventSchema = z.discriminatedUnion('type', [
@@ -20,18 +27,29 @@ export function errorCopy(error: unknown): string {
   const messages: Record<string, string> = {
     QUEUE_FULL: 'Gemma is helping other people. Wait a little, then retry.',
     QUEUE_TIMEOUT: 'The queue took too long. Your work is still here; try again shortly.',
-    RATE_LIMITED: 'This connection has reached its request limit. Try again later or edit your preferences yourself.',
-    INFERENCE_TIMEOUT: 'Gemma took too long to reply. Retry, or continue to your preferences.',
-    INVALID_MODEL_OUTPUT: 'Gemma could not finish a valid response. Retry, or enter your preferences yourself.',
-    OUTPUT_LIMIT: 'Gemma reached its reply limit. Retry with a shorter request or continue to preferences.',
-    INSUFFICIENT_OPTIONS: 'Fewer than three eligible hobbies remain. Broaden your setting or remove some exclusions.',
-    INPUT_LIMIT: 'This message is too long for the current model. Shorten it and try again.',
-    CONTEXT_LIMIT: 'This conversation needs a shorter context. Continue by entering your preferences yourself.',
+    RATE_LIMITED:
+      'This connection has reached its request limit. Try again later or edit your preferences yourself.',
+    INFERENCE_TIMEOUT:
+      'Gemma took too long to reply. Retry, or continue to your preferences.',
+    INVALID_MODEL_OUTPUT:
+      'Gemma could not finish a valid response. Retry, or enter your preferences yourself.',
+    OUTPUT_LIMIT:
+      'Gemma reached its reply limit. Retry with a shorter request or continue to preferences.',
+    INSUFFICIENT_OPTIONS:
+      'Fewer than three eligible hobbies remain. Broaden your setting or remove some exclusions.',
+    INPUT_LIMIT:
+      'This message is too long for the current model. Shorten it and try again.',
+    CONTEXT_LIMIT:
+      'This conversation needs a shorter context. Continue by entering your preferences yourself.',
     INVALID_REQUEST: 'Check your message or preferences and try again.',
-    MODEL_MISSING: 'Gemma is still being set up. Try again later or enter your preferences yourself.',
-    MODEL_MISMATCH: 'The hosted model is not ready. Try again later or enter your preferences yourself.',
-    INFERENCE_UNAVAILABLE: 'Gemma is unavailable right now. Retry, or enter your preferences yourself.',
-    NETWORK_ERROR: 'We could not reach Gemma. Check your connection and retry; your work stays here.',
+    MODEL_MISSING:
+      'Gemma is still being set up. Try again later or enter your preferences yourself.',
+    MODEL_MISMATCH:
+      'The hosted model is not ready. Try again later or enter your preferences yourself.',
+    INFERENCE_UNAVAILABLE:
+      'Gemma is unavailable right now. Retry, or enter your preferences yourself.',
+    NETWORK_ERROR:
+      'We could not reach Gemma. Check your connection and retry; your work stays here.',
   };
   return messages[code] ?? messages.NETWORK_ERROR!;
 }
@@ -63,7 +81,9 @@ async function post(path: string, body: unknown, signal: AbortSignal) {
     cache: 'no-store',
   });
   if (!response.ok) {
-    const parsed = await response.json().catch(() => null) as { error?: { code?: string } } | null;
+    const parsed = (await response.json().catch(() => null)) as {
+      error?: { code?: string };
+    } | null;
     throw new ApiError(parsed?.error?.code ?? 'INFERENCE_UNAVAILABLE');
   }
   return response;
@@ -76,7 +96,10 @@ export async function streamChat(
   onToken: (content: string) => void,
 ): Promise<void> {
   const response = await post('/api/chat', { messages }, signal);
-  if (!response.body || !response.headers.get('content-type')?.includes('application/x-ndjson')) {
+  if (
+    !response.body ||
+    !response.headers.get('content-type')?.includes('application/x-ndjson')
+  ) {
     throw new ApiError('INVALID_MODEL_OUTPUT');
   }
   const reader = response.body.getReader();
@@ -125,7 +148,9 @@ export async function streamChat(
   try {
     while (true) {
       const next = await reader.read();
-      buffered += next.done ? decoder.decode() : decoder.decode(next.value, { stream: true });
+      buffered += next.done
+        ? decoder.decode()
+        : decoder.decode(next.value, { stream: true });
       if (buffered.length > 65536) {
         throw new ApiError('INVALID_MODEL_OUTPUT');
       }
@@ -155,7 +180,9 @@ export async function extractPreferences(
   signal: AbortSignal,
 ): Promise<PreferenceDraft> {
   const response = await post('/api/preferences', { messages }, signal);
-  const result = z.object({ profile: preferenceDraftSchema }).safeParse(await response.json());
+  const result = z
+    .object({ profile: preferenceDraftSchema })
+    .safeParse(await response.json());
   if (!result.success) {
     throw new ApiError('INVALID_MODEL_OUTPUT');
   }
@@ -170,16 +197,20 @@ export async function serviceStatus(signal: AbortSignal) {
   if (!response.ok) {
     throw new ApiError('INFERENCE_UNAVAILABLE');
   }
-  return z.object({
-    modelState: z.object({ installed: z.boolean(), loaded: z.boolean() }),
-    limits: z.object({ maxInputBytes: z.number().int().min(100).max(10000) }),
-  }).parse(await response.json());
+  return z
+    .object({
+      modelState: z.object({ installed: z.boolean(), loaded: z.boolean() }),
+      limits: z.object({ maxInputBytes: z.number().int().min(100).max(10000) }),
+    })
+    .parse(await response.json());
 }
 
 export async function requestRecommendations(profile: Profile, signal: AbortSignal) {
   const response = await post('/api/recommendations', { profile }, signal);
   const value = await response.json();
-  const result = recommendationsSchema.safeParse({ recommendations: value?.recommendations });
+  const result = recommendationsSchema.safeParse({
+    recommendations: value?.recommendations,
+  });
   if (!result.success) {
     throw new ApiError('INVALID_MODEL_OUTPUT');
   }
@@ -189,11 +220,23 @@ export async function requestRecommendations(profile: Profile, signal: AbortSign
 export async function requestRefresh(body: RefreshRequest, signal: AbortSignal) {
   const response = await post('/api/refresh', body, signal);
   const value = await response.json();
-  const result = recommendationsSchema.safeParse({ recommendations: value?.recommendations });
-  if (!result.success || (body.retainedHobbyId && !result.data.recommendations.some((item) => item.hobbyId === body.retainedHobbyId))) {
+  const result = recommendationsSchema.safeParse({
+    recommendations: value?.recommendations,
+  });
+  if (
+    !result.success ||
+    (body.retainedHobbyId &&
+      !result.data.recommendations.some((item) => item.hobbyId === body.retainedHobbyId))
+  ) {
     throw new ApiError('INVALID_MODEL_OUTPUT');
   }
-  if (result.data.recommendations.some((item) => body.previousHobbyIds.includes(item.hobbyId) && item.hobbyId !== body.retainedHobbyId)) {
+  if (
+    result.data.recommendations.some(
+      (item) =>
+        body.previousHobbyIds.includes(item.hobbyId) &&
+        item.hobbyId !== body.retainedHobbyId,
+    )
+  ) {
     throw new ApiError('INVALID_MODEL_OUTPUT');
   }
   return result.data;

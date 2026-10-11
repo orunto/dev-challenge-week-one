@@ -80,7 +80,10 @@ export async function buildApp(
     reply.header('X-Content-Type-Options', 'nosniff');
     reply.header('Referrer-Policy', 'no-referrer');
     reply.header('X-Frame-Options', 'DENY');
-    reply.header('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self'; worker-src 'self'; manifest-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; form-action 'self'");
+    reply.header(
+      'Content-Security-Policy',
+      "default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self'; worker-src 'self'; manifest-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; form-action 'self'",
+    );
   });
   app.setErrorHandler((error, request, reply) => {
     const statusCode =
@@ -277,7 +280,11 @@ export async function buildApp(
       return { profile, metrics: { queueMs: held.queueMs, ...result.metrics } };
     } catch (error) {
       if (held?.timeout.aborted) {
-        throw new AppError(504, 'INFERENCE_TIMEOUT', 'Gemma took too long. Please try again.');
+        throw new AppError(
+          504,
+          'INFERENCE_TIMEOUT',
+          'Gemma took too long. Please try again.',
+        );
       }
       throw error;
     } finally {
@@ -334,16 +341,36 @@ export async function buildApp(
     let held: Awaited<ReturnType<typeof lease>> | undefined;
     try {
       held = await lease(connection.signal);
-      const result = await client.generate(messages, held.signal, undefined, recommendationFormat(effectiveProfile));
+      const result = await client.generate(
+        messages,
+        held.signal,
+        undefined,
+        recommendationFormat(effectiveProfile),
+      );
       const output = parseRecommendations(result.content, effectiveProfile);
-      if (body.retainedHobbyId && !output.recommendations.some((item) => item.hobbyId === body.retainedHobbyId)) {
-        throw new AppError(502, 'INVALID_MODEL_OUTPUT', 'Gemma did not preserve your selected favorite. Please retry.');
+      if (
+        body.retainedHobbyId &&
+        !output.recommendations.some((item) => item.hobbyId === body.retainedHobbyId)
+      ) {
+        throw new AppError(
+          502,
+          'INVALID_MODEL_OUTPUT',
+          'Gemma did not preserve your selected favorite. Please retry.',
+        );
       }
-      log({ event: 'refresh_completed', requestId: request.id, elapsedMs: result.metrics.inferenceMs });
+      log({
+        event: 'refresh_completed',
+        requestId: request.id,
+        elapsedMs: result.metrics.inferenceMs,
+      });
       return { ...output, metrics: { queueMs: held.queueMs, ...result.metrics } };
     } catch (error) {
       if (held?.timeout.aborted) {
-        throw new AppError(504, 'INFERENCE_TIMEOUT', 'Gemma took too long. Please try again.');
+        throw new AppError(
+          504,
+          'INFERENCE_TIMEOUT',
+          'Gemma took too long. Please try again.',
+        );
       }
       throw error;
     } finally {
@@ -352,10 +379,16 @@ export async function buildApp(
     }
   });
 
-  const webRoot = options.webRoot === false
-    ? null
-    : options.webRoot ?? fileURLToPath(new URL('../../web/dist/', import.meta.url));
-  if (webRoot && await stat(webRoot).then((entry) => entry.isDirectory()).catch(() => false)) {
+  const webRoot =
+    options.webRoot === false
+      ? null
+      : (options.webRoot ?? fileURLToPath(new URL('../../web/dist/', import.meta.url)));
+  if (
+    webRoot &&
+    (await stat(webRoot)
+      .then((entry) => entry.isDirectory())
+      .catch(() => false))
+  ) {
     await app.register(staticFiles, { root: webRoot, wildcard: false });
   }
 

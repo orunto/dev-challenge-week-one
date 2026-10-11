@@ -25,7 +25,12 @@ const metrics = {
 test('preference extraction preserves unknowns and ignores assistant-supplied facts', async (t) => {
   const received: ModelMessage[][] = [];
   const client: InferenceClient = {
-    status: async () => ({ installed: true, loaded: true, modelBytes: 1, digest: 'test' }),
+    status: async () => ({
+      installed: true,
+      loaded: true,
+      modelBytes: 1,
+      digest: 'test',
+    }),
     generate: async (messages, _signal, _onToken, format) => {
       received.push(messages);
       assert.ok(format);
@@ -56,7 +61,12 @@ test('invalid extraction and private upstream errors do not expose conversation 
   let output = JSON.stringify({ ...draft, excludedHobbyIds: ['invented'] });
   let fail = false;
   const client: InferenceClient = {
-    status: async () => ({ installed: true, loaded: true, modelBytes: 1, digest: 'test' }),
+    status: async () => ({
+      installed: true,
+      loaded: true,
+      modelBytes: 1,
+      digest: 'test',
+    }),
     generate: async () => {
       if (fail) {
         throw new Error(secret);
@@ -64,13 +74,17 @@ test('invalid extraction and private upstream errors do not expose conversation 
       return { content: output, metrics };
     },
   };
-  const app = await buildApp(readConfig({}), { client, log: (event) => logs.push(event) });
-  t.after(() => app.close());
-  const call = () => app.inject({
-    method: 'POST',
-    url: '/api/preferences',
-    payload: { messages: [{ role: 'user', content: secret }] },
+  const app = await buildApp(readConfig({}), {
+    client,
+    log: (event) => logs.push(event),
   });
+  t.after(() => app.close());
+  const call = () =>
+    app.inject({
+      method: 'POST',
+      url: '/api/preferences',
+      payload: { messages: [{ role: 'user', content: secret }] },
+    });
   assert.equal((await call()).json().error.code, 'INVALID_MODEL_OUTPUT');
   output = JSON.stringify({ ...draft, minutesPerSession: 0 });
   assert.equal((await call()).statusCode, 502);

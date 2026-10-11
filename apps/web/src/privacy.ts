@@ -1,16 +1,29 @@
 import { z } from 'zod';
 import { hobbyIds } from '@hobbymaxx/hobby-catalog';
-import { emptyLibrary, librarySchema, validateActivity, validateCycle } from './library.js';
+import {
+  emptyLibrary,
+  librarySchema,
+  validateActivity,
+  validateCycle,
+} from './library.js';
 import { sessionSchema, type Session } from './session.js';
-import { acceptDataGeneration, flushSessionWrites, openDatabase, pauseStorageWrites, StorageError } from './storage.js';
+import {
+  acceptDataGeneration,
+  flushSessionWrites,
+  openDatabase,
+  pauseStorageWrites,
+  StorageError,
+} from './storage.js';
 
-export const backupSchema = z.object({
-  format: z.literal('hobbymaxx'),
-  version: z.literal(1),
-  exportedAt: z.iso.datetime(),
-  session: sessionSchema.nullable(),
-  library: librarySchema,
-}).strict();
+export const backupSchema = z
+  .object({
+    format: z.literal('hobbymaxx'),
+    version: z.literal(1),
+    exportedAt: z.iso.datetime(),
+    session: sessionSchema.nullable(),
+    library: librarySchema,
+  })
+  .strict();
 export type Backup = z.infer<typeof backupSchema>;
 
 export function validateBackup(value: unknown): Backup {
@@ -39,17 +52,23 @@ export async function exportBackup(): Promise<Backup> {
   await flushSessionWrites();
   const database = await openDatabase();
   try {
-    const snapshot = await new Promise<{ session: unknown; library: unknown }>((resolve, reject) => {
-      const transaction = database.transaction(['onboarding', 'library'], 'readonly');
-      const session = transaction.objectStore('onboarding').get('current');
-      const library = transaction.objectStore('library').get('current');
-      transaction.oncomplete = () => resolve({ session: session.result, library: library.result });
-      transaction.onerror = () => reject(new StorageError());
-      transaction.onabort = () => reject(new StorageError());
-    });
+    const snapshot = await new Promise<{ session: unknown; library: unknown }>(
+      (resolve, reject) => {
+        const transaction = database.transaction(['onboarding', 'library'], 'readonly');
+        const session = transaction.objectStore('onboarding').get('current');
+        const library = transaction.objectStore('library').get('current');
+        transaction.oncomplete = () =>
+          resolve({ session: session.result, library: library.result });
+        transaction.onerror = () => reject(new StorageError());
+        transaction.onabort = () => reject(new StorageError());
+      },
+    );
     return validateBackup({
-      format: 'hobbymaxx', version: 1, exportedAt: new Date().toISOString(),
-      session: snapshot.session ?? null, library: snapshot.library ?? emptyLibrary(),
+      format: 'hobbymaxx',
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      session: snapshot.session ?? null,
+      library: snapshot.library ?? emptyLibrary(),
     });
   } finally {
     database.close();
@@ -64,7 +83,10 @@ export async function replaceLocalData(backup: Backup | null): Promise<Session |
   const database = await openDatabase();
   try {
     await new Promise<void>((resolve, reject) => {
-      const transaction = database.transaction(['onboarding', 'library', 'metadata'], 'readwrite');
+      const transaction = database.transaction(
+        ['onboarding', 'library', 'metadata'],
+        'readwrite',
+      );
       const sessions = transaction.objectStore('onboarding');
       const library = transaction.objectStore('library');
       const metadata = transaction.objectStore('metadata');
@@ -72,9 +94,12 @@ export async function replaceLocalData(backup: Backup | null): Promise<Session |
       let nextGeneration = 0;
       generation.onsuccess = () => {
         const current = generation.result ?? 0;
-        nextGeneration = Number.isSafeInteger(current) && current >= 0 && current < Number.MAX_SAFE_INTEGER
-          ? current + 1
-          : Date.now();
+        nextGeneration =
+          Number.isSafeInteger(current) &&
+          current >= 0 &&
+          current < Number.MAX_SAFE_INTEGER
+            ? current + 1
+            : Date.now();
         sessions.clear();
         library.clear();
         metadata.put(nextGeneration, 'generation');
@@ -85,7 +110,10 @@ export async function replaceLocalData(backup: Backup | null): Promise<Session |
           library.put(parsed.library, 'current');
         }
       };
-      transaction.oncomplete = () => { acceptDataGeneration(nextGeneration); resolve(); };
+      transaction.oncomplete = () => {
+        acceptDataGeneration(nextGeneration);
+        resolve();
+      };
       transaction.onerror = () => reject(new StorageError());
       transaction.onabort = () => reject(new StorageError());
     });
@@ -110,9 +138,19 @@ export async function deleteRawConversation(): Promise<Session | null> {
       request.onsuccess = () => {
         try {
           const current = generation.result ?? 0;
-          nextGeneration = Number.isSafeInteger(current) && current >= 0 && current < Number.MAX_SAFE_INTEGER ? current + 1 : Date.now();
+          nextGeneration =
+            Number.isSafeInteger(current) &&
+            current >= 0 &&
+            current < Number.MAX_SAFE_INTEGER
+              ? current + 1
+              : Date.now();
           if (request.result !== undefined) {
-            next = { ...sessionSchema.parse(request.result), messages: [], composer: '', discardConversation: true };
+            next = {
+              ...sessionSchema.parse(request.result),
+              messages: [],
+              composer: '',
+              discardConversation: true,
+            };
             store.put(next, 'current');
           }
           metadata.put(nextGeneration, 'generation');
@@ -120,7 +158,10 @@ export async function deleteRawConversation(): Promise<Session | null> {
           transaction.abort();
         }
       };
-      transaction.oncomplete = () => { acceptDataGeneration(nextGeneration); resolve(next); };
+      transaction.oncomplete = () => {
+        acceptDataGeneration(nextGeneration);
+        resolve(next);
+      };
       transaction.onerror = () => reject(new StorageError());
       transaction.onabort = () => reject(new StorageError());
     });

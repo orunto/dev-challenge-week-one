@@ -98,7 +98,7 @@ bun run benchmark --cases low-energy-accessibility,conflicting-preferences --sav
 | `GET /ready`                | Ollama reachable and configured model installed; reports whether currently loaded            |
 | `GET /api/status`           | Model digest, model footprint, queue, runtime settings, and container memory where available |
 | `POST /api/chat`            | Onboarding replies as newline-delimited JSON events                                          |
-| `POST /api/preferences`     | Validated preference draft from user-supplied conversation; unstated choices stay null        |
+| `POST /api/preferences`     | Validated preference draft from user-supplied conversation; unstated choices stay null       |
 | `POST /api/recommendations` | Validated three-hobby recommendations with timing metrics                                    |
 | `POST /api/refresh`         | Validated new-cycle recommendations from profile/feedback, with optional retained favorite   |
 

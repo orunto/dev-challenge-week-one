@@ -1,9 +1,21 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { profileSchema, type PreferenceDraft } from '@hobbymaxx/shared';
 import { hobbies } from '@hobbymaxx/hobby-catalog';
-import { ApiError, boundedContext, errorCopy, extractPreferences, serviceStatus, streamChat } from './api.js';
+import {
+  ApiError,
+  boundedContext,
+  errorCopy,
+  extractPreferences,
+  serviceStatus,
+  streamChat,
+} from './api.js';
 import { message, newSession, type ReviewForm, type Session } from './session.js';
-import { loadSession, pauseStorageWrites, resumeStorageWrites, saveSession } from './storage.js';
+import {
+  loadSession,
+  pauseStorageWrites,
+  resumeStorageWrites,
+  saveSession,
+} from './storage.js';
 
 export type Operation = 'idle' | 'waiting' | 'generating' | 'extracting' | 'saving';
 type StorageState = 'loading' | 'saving' | 'saved' | 'error' | 'session-only';
@@ -22,7 +34,10 @@ function formFromDraft(draft: PreferenceDraft): ReviewForm {
 }
 
 function lines(value: string) {
-  return value.split('\n').map((line) => line.trim()).filter(Boolean);
+  return value
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
 }
 
 export function useOnboarding() {
@@ -48,19 +63,21 @@ export function useOnboarding() {
   useEffect(() => {
     mounted.current = true;
     let alive = true;
-    loadSession().then((saved) => {
-      if (alive) {
-        setSession(saved ?? newSession());
-        historyLoaded.current = true;
-        setStorage('saved');
-        setLoaded(true);
-      }
-    }).catch(() => {
-      if (alive) {
-        setStorage('error');
-        setLoaded(true);
-      }
-    });
+    loadSession()
+      .then((saved) => {
+        if (alive) {
+          setSession(saved ?? newSession());
+          historyLoaded.current = true;
+          setStorage('saved');
+          setLoaded(true);
+        }
+      })
+      .catch(() => {
+        if (alive) {
+          setStorage('error');
+          setLoaded(true);
+        }
+      });
     return () => {
       alive = false;
       mounted.current = false;
@@ -69,20 +86,28 @@ export function useOnboarding() {
   }, []);
 
   useEffect(() => {
-    if (!loaded || !historyLoaded.current || sessionOnly.current || privacyPaused.current) {
+    if (
+      !loaded ||
+      !historyLoaded.current ||
+      sessionOnly.current ||
+      privacyPaused.current
+    ) {
       return;
     }
     const sequence = ++saveSequence.current;
     setStorage('saving');
-    Promise.resolve().then(() => saveSession(session)).then(() => {
-      if (mounted.current && sequence === saveSequence.current) {
-        setStorage('saved');
-      }
-    }).catch(() => {
-      if (mounted.current && sequence === saveSequence.current) {
-        setStorage('error');
-      }
-    });
+    Promise.resolve()
+      .then(() => saveSession(session))
+      .then(() => {
+        if (mounted.current && sequence === saveSequence.current) {
+          setStorage('saved');
+        }
+      })
+      .catch(() => {
+        if (mounted.current && sequence === saveSequence.current) {
+          setStorage('error');
+        }
+      });
   }, [loaded, session]);
 
   const checkService = useCallback(async () => {
@@ -145,7 +170,9 @@ export function useOnboarding() {
       return;
     }
     if (!online) {
-      setError('You are offline. You can still enter and save your preferences yourself.');
+      setError(
+        'You are offline. You can still enter and save your preferences yourself.',
+      );
       return;
     }
     if (content !== undefined && !content.trim()) {
@@ -180,28 +207,37 @@ export function useOnboarding() {
     let reply = '';
     let completeReply = false;
     try {
-      await streamChat(context.messages, controller.signal, () => {
-        if (mounted.current) {
-          setOperation('generating');
-        }
-      }, (token) => {
-        reply += token;
-        if (mounted.current) {
-          setPartial(reply);
-        }
-      });
+      await streamChat(
+        context.messages,
+        controller.signal,
+        () => {
+          if (mounted.current) {
+            setOperation('generating');
+          }
+        },
+        (token) => {
+          reply += token;
+          if (mounted.current) {
+            setPartial(reply);
+          }
+        },
+      );
       if (!reply.trim()) {
         throw new ApiError('INVALID_MODEL_OUTPUT');
       }
       completeReply = true;
       if (mounted.current) {
         setAvailability('ready');
-        setNotice('Gemma replied. You can answer, skip this question, or review your preferences.');
+        setNotice(
+          'Gemma replied. You can answer, skip this question, or review your preferences.',
+        );
       }
     } catch (cause) {
       if (mounted.current) {
         if (controller.signal.aborted) {
-          setNotice('Reply stopped. Any unfinished text is marked below and will not be sent back to Gemma.');
+          setNotice(
+            'Reply stopped. Any unfinished text is marked below and will not be sent back to Gemma.',
+          );
         } else {
           setError(errorCopy(cause));
         }
@@ -211,7 +247,10 @@ export function useOnboarding() {
         if (reply.trim()) {
           setSession((current) => ({
             ...current,
-            messages: [...current.messages, message('assistant', reply, completeReply ? 'complete' : 'interrupted')],
+            messages: [
+              ...current.messages,
+              message('assistant', reply, completeReply ? 'complete' : 'interrupted'),
+            ],
           }));
         }
         setPartial('');
@@ -225,13 +264,17 @@ export function useOnboarding() {
     if (active.current || operation === 'saving' || !session.acceptedHostedProcessing) {
       return;
     }
-    const users = session.messages.filter((item) => item.role === 'user' && item.status === 'complete');
+    const users = session.messages.filter(
+      (item) => item.role === 'user' && item.status === 'complete',
+    );
     if (!users.length) {
       go('review');
       return;
     }
     if (!online) {
-      setError('Profile extraction needs internet. You can enter your preferences yourself.');
+      setError(
+        'Profile extraction needs internet. You can enter your preferences yourself.',
+      );
       return;
     }
     let context;
@@ -250,13 +293,22 @@ export function useOnboarding() {
     try {
       const draft = await extractPreferences(context.messages, controller.signal);
       if (mounted.current) {
-        update({ draft, form: formFromDraft(draft), screen: 'review', confirmedProfile: null });
-        setNotice('This is Gemma’s draft from your recent answers. Check every field; unstated preferences are blank.');
+        update({
+          draft,
+          form: formFromDraft(draft),
+          screen: 'review',
+          confirmedProfile: null,
+        });
+        setNotice(
+          'This is Gemma’s draft from your recent answers. Check every field; unstated preferences are blank.',
+        );
       }
     } catch (cause) {
       if (mounted.current) {
         if (controller.signal.aborted) {
-          setNotice('Profile extraction stopped. Your conversation and previous edits are still here.');
+          setNotice(
+            'Profile extraction stopped. Your conversation and previous edits are still here.',
+          );
         } else {
           setError(errorCopy(cause));
         }
@@ -286,17 +338,22 @@ export function useOnboarding() {
     if (!parsed.success) {
       for (const issue of parsed.error.issues) {
         const field = String(issue.path[0]);
-        errors[field] = field === 'minutesPerSession'
-          ? 'Choose a whole number from 5 to 240 minutes.'
-          : ['interests', 'constraints'].includes(field)
-            ? `Use at most 8 lines, each no longer than ${field === 'interests' ? 100 : 160} characters.`
-            : 'Choose an option before saving.';
+        errors[field] =
+          field === 'minutesPerSession'
+            ? 'Choose a whole number from 5 to 240 minutes.'
+            : ['interests', 'constraints'].includes(field)
+              ? `Use at most 8 lines, each no longer than ${field === 'interests' ? 100 : 160} characters.`
+              : 'Choose an option before saving.';
       }
       setFieldErrors(errors);
       setError('Check the highlighted preferences before saving.');
       return;
     }
-    if (parsed.data.excludedHobbyIds?.some((id) => !hobbies.some((hobby) => hobby.id === id))) {
+    if (
+      parsed.data.excludedHobbyIds?.some(
+        (id) => !hobbies.some((hobby) => hobby.id === id),
+      )
+    ) {
       setError('Choose exclusions from the displayed hobby list.');
       return;
     }
@@ -307,10 +364,14 @@ export function useOnboarding() {
         profile.environment === 'either' ||
         hobby.environment === 'either' ||
         hobby.environment === profile.environment;
-      return withinBudget && withinEnvironment && !profile.excludedHobbyIds?.includes(hobby.id);
+      return (
+        withinBudget && withinEnvironment && !profile.excludedHobbyIds?.includes(hobby.id)
+      );
     });
     if (eligible.length < 3) {
-      setError('Keep at least three eligible hobbies available. Remove some exclusions or broaden your setting or budget.');
+      setError(
+        'Keep at least three eligible hobbies available. Remove some exclusions or broaden your setting or budget.',
+      );
       return;
     }
     setFieldErrors({});
@@ -320,7 +381,10 @@ export function useOnboarding() {
       ...session,
       confirmedProfile: parsed.data,
       draft: { ...parsed.data, excludedHobbyIds: parsed.data.excludedHobbyIds ?? [] },
-      form: formFromDraft({ ...parsed.data, excludedHobbyIds: parsed.data.excludedHobbyIds ?? [] }),
+      form: formFromDraft({
+        ...parsed.data,
+        excludedHobbyIds: parsed.data.excludedHobbyIds ?? [],
+      }),
       screen: 'confirmed',
       messages: session.discardConversation ? [] : session.messages,
       composer: session.discardConversation ? '' : session.composer,
@@ -333,10 +397,16 @@ export function useOnboarding() {
         await saveSession(next);
       }
       setSession(next);
-      setNotice(sessionOnly.current ? 'Your profile is ready for this session only.' : 'Your profile is saved on this browser.');
+      setNotice(
+        sessionOnly.current
+          ? 'Your profile is ready for this session only.'
+          : 'Your profile is saved on this browser.',
+      );
     } catch {
       setStorage('error');
-      setError('Your profile was not saved. Retry local saving or continue explicitly for this session only.');
+      setError(
+        'Your profile was not saved. Retry local saving or continue explicitly for this session only.',
+      );
     } finally {
       setOperation('idle');
     }
@@ -368,7 +438,9 @@ export function useOnboarding() {
   function continueWithoutSaving() {
     sessionOnly.current = true;
     setStorage('session-only');
-    setNotice('Local saving is off. This session will be lost when you close or reload the page.');
+    setNotice(
+      'Local saving is off. This session will be lost when you close or reload the page.',
+    );
   }
 
   async function beginDataChange() {
@@ -391,12 +463,32 @@ export function useOnboarding() {
     resumeStorageWrites();
   }
 
-  const retryChat = session.messages.filter((item) => item.status === 'complete').at(-1)?.role === 'user';
+  const retryChat =
+    session.messages.filter((item) => item.status === 'complete').at(-1)?.role === 'user';
   return {
-    session, loaded, storage, operation, availability, online, error, notice, partial,
-    omitted, fieldErrors, busy, retryChat, update, go, chat, reviewWithGemma,
-    confirm, retryStorage, continueWithoutSaving, checkService,
-    beginDataChange, finishDataChange,
+    session,
+    loaded,
+    storage,
+    operation,
+    availability,
+    online,
+    error,
+    notice,
+    partial,
+    omitted,
+    fieldErrors,
+    busy,
+    retryChat,
+    update,
+    go,
+    chat,
+    reviewWithGemma,
+    confirm,
+    retryStorage,
+    continueWithoutSaving,
+    checkService,
+    beginDataChange,
+    finishDataChange,
     cancel: () => active.current?.abort(),
   };
 }
