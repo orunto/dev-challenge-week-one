@@ -6,7 +6,7 @@ An open-weight Gemma-powered hobby discovery app. Tell the agent about yourself,
 
 Implemented: TypeScript workspace, Fastify API, Ollama streaming adapter, grounded structured recommendations, bounded queue, cancellation/timeouts, privacy-safe operational logging, a synthetic benchmark runner, automated tests, and Render container configuration.
 
-Phase two adds a React/Vite welcome, conversation, editable preference review, and confirmed-profile flow; IndexedDB local history/resume; a separate validated Gemma preference-extraction operation; and same-origin frontend serving. These changes have not been installed, built, tested, or visually reviewed yet. See [`docs/phase-two.md`](docs/phase-two.md).
+Phase two adds a React/Vite welcome, conversation, editable preference review, and confirmed-profile flow; IndexedDB local history/resume; a separate validated Gemma preference-extraction operation; and same-origin frontend serving. The agent has not built, tested, or visually reviewed these changes; user-run verification results have not been recorded. See [`docs/phase-two.md`](docs/phase-two.md).
 
 Phases three through five add grounded experiment cards, saved cycles, activity/reflection logging, derived points, feedback-informed refreshes with an optional retained favorite, history, privacy controls, validated JSON export/import, and offline app-shell/PWA source. These additions are also unverified. The full roadmap is in [`plan.md`](plan.md), and the approved UI specification is in [`design.md`](design.md).
 
@@ -59,11 +59,14 @@ The build includes self-hosted fonts and the React app in `apps/web/dist`; Fasti
 bun run format:check
 bun run typecheck
 bun run test
+bun run build
 ```
 
 Format supported source files, configurations, tests, scripts, and Markdown with `bun run format`. Prettier uses two-space indentation, single quotes, and a 90-column code width. Use explicit blocks for control flow so review and debugging remain straightforward. Generated output, benchmark reports, environment files, and the dependency lockfile are excluded.
 
 Tests use synthetic inference clients and `fake-indexeddb`; they never install a model or send personal information to a provider. Some integration tests start local fixture APIs and remove temporary reports or frontend fixture files afterward. These are user-run processes.
+
+`bun run verify` runs format-check, type checks, tests, and the production build in order, stopping on failure. See [`docs/deployment.md`](docs/deployment.md) for Docker, model, browser, budget, and deployment gates. Code checks alone do not establish a verified public demo.
 
 ## Benchmark
 

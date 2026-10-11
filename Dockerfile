@@ -16,6 +16,7 @@ COPY tsconfig*.json ./
 COPY apps/server apps/server
 COPY apps/web apps/web
 COPY packages packages
+COPY scripts/generate-icons.mjs scripts/generate-icons.mjs
 RUN bun run build
 
 FROM manifests AS production-dependencies

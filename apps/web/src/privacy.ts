@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { hobbyIds } from '@hobbymaxx/hobby-catalog';
 import { emptyLibrary, librarySchema, validateActivity, validateCycle } from './library.js';
 import { sessionSchema, type Session } from './session.js';
 import { acceptDataGeneration, flushSessionWrites, openDatabase, pauseStorageWrites, StorageError } from './storage.js';
@@ -14,6 +15,14 @@ export type Backup = z.infer<typeof backupSchema>;
 
 export function validateBackup(value: unknown): Backup {
   const backup = backupSchema.parse(value);
+  const exclusions = [
+    ...(backup.session?.draft.excludedHobbyIds ?? []),
+    ...(backup.session?.form.excludedHobbyIds ?? []),
+    ...(backup.session?.confirmedProfile?.excludedHobbyIds ?? []),
+  ];
+  if (exclusions.some((id) => !hobbyIds.has(id))) {
+    throw new Error('Unknown excluded hobby');
+  }
   backup.library.cycles.forEach(validateCycle);
   backup.library.logs.forEach((log) => validateActivity(log, backup.library));
   return backup;

@@ -18,9 +18,10 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET' || url.origin !== self.location.origin || url.pathname.startsWith('/api/') || url.pathname === '/health' || url.pathname === '/ready') return;
   if (request.mode === 'navigate' && (url.pathname === '/' || url.pathname === '/index.html')) {
     event.respondWith(fetch(request).then(async (response) => {
+      if (!response.ok) throw new Error('App shell unavailable');
       if (response.ok && response.headers.get('content-type')?.includes('text/html')) {
         const cache = await caches.open(CACHE);
-        await cache.put('/', response.clone());
+        await cache.put('/', response.clone()).catch(() => {});
       }
       return response;
     }).catch(async () => (await caches.open(CACHE)).match('/') .then((cached) => cached || new Response('Open HobbyMaxx online once to prepare offline access.', { status: 503 }))));
@@ -31,9 +32,9 @@ self.addEventListener('fetch', (event) => {
     const cached = await cache.match(url.pathname);
     if (cached) return cached;
     const response = await fetch(request);
-    if (response.ok) await cache.put(url.pathname, response.clone());
+    if (response.ok) await cache.put(url.pathname, response.clone()).catch(() => {});
     return response;
-  }));
+  }).catch(() => fetch(request)));
 });
 `;
 }

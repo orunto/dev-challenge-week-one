@@ -21,7 +21,8 @@
     "test": "bun run build:server && tsx --test apps/server/test/*.test.ts apps/web/test/*.test.ts",
     "benchmark": "bun run build:server && tsx scripts/benchmark.ts",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "verify": "node scripts/verify.mjs"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

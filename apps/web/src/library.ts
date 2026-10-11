@@ -22,6 +22,9 @@ export function emptyLibrary(): Library {
 
 export function validateCycle(cycle: Cycle): Cycle {
   const parsed = cycleSchema.parse(cycle);
+  if (parsed.profile.excludedHobbyIds?.some((id) => !hobbies.some((hobby) => hobby.id === id))) {
+    throw new Error('Unknown excluded hobby');
+  }
   for (const item of parsed.recommendations) {
     const hobby = hobbies.find((entry) => entry.id === item.hobbyId);
     if (!hobby || parsed.profile.excludedHobbyIds?.includes(item.hobbyId) ||
@@ -111,6 +114,7 @@ export function validateActivity(log: ActivityLog, library: Library): ActivityLo
   const cycle = library.cycles.find((item) => item.id === parsed.cycleId);
   const hobby = hobbies.find((item) => item.id === parsed.hobbyId);
   if (!cycle || !hobby || !cycle.recommendations.some((item) => item.hobbyId === hobby.id) ||
+    Date.parse(parsed.recordedAt) < Date.parse(cycle.startedAt) ||
     parsed.activityId !== hobby.activityId || parsed.occurredOn < (cycle.startedOn ?? cycle.startedAt.slice(0, 10)) ||
     parsed.occurredOn > (parsed.recordedOn ?? parsed.recordedAt.slice(0, 10))) {
     throw new Error('Invalid activity reference or attempt date');

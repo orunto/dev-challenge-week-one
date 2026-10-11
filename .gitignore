@@ -9,3 +9,4 @@ hobbymaxx-benchmark-test-*/
 hobbymaxx-web-test-*/
 *.log
 .DS_Store
+apps/web/public/icons/*.png

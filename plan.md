@@ -46,7 +46,7 @@ Fastify will serve the built frontend and API from the same origin. Ollama will 
 
 **Phase two is implemented in source, with user-run verification pending.** The React/Vite onboarding flow, editable preference review, IndexedDB history/resume, and separate model profile-extraction endpoint are written. Dependencies/lockfile installation, formatting, type checks, tests, real-Gemma extraction review, and mobile/browser verification have not been run. See [`docs/phase-two.md`](docs/phase-two.md).
 
-**Phases three through five are implemented in source, with verification pending.** The core loop, privacy/data controls, database migrations, validated export/import, stale-write protection, and offline app-shell/PWA source are written. Phase six deployment preparation is next; provisioning paid resources requires explicit approval.
+**All core source milestones and phase-six deployment preparation are implemented. Verification and public deployment remain open.** The core loop, privacy/data controls, migrations, exports/imports, offline PWA, Bun/Docker configuration, release checks, and deployment runbook are written. No phase exit criterion is promoted to a verified pass without user-run evidence. See [`docs/deployment.md`](docs/deployment.md).
 
 **Execution preference:** Git inspection, staging, and explicitly approved commits are authorized. The user runs all other processes, including installs, formatting, tests, builds, benchmarks, development servers, and Docker checks. Show the exact drafted message and obtain approval before each commit; use the configured identity without overrides. Remote pushes and paid deployment require separate explicit permission.
 
@@ -175,15 +175,16 @@ Users can understand, retain, export, and erase their local data. The app has cl
 
 ### Deliverables
 
-- Build and test the final Docker image with managed Fastify/Ollama startup and shutdown.
-- Persist model files across restarts; verify health versus model readiness behavior.
-- Serve the built PWA and API from one origin.
-- Finalize the approved model artifact and environment-controlled runtime limits.
-- Verify Render proxy behavior before changing forwarded-header trust or per-user rate limiting.
-- Confirm current pricing, credit eligibility/expiry, remaining runway, and the shutdown procedure.
-- Deploy only after explicit approval to provision paid resources.
-- Document setup, environment variables, model choice, architecture, privacy, and demo limitations.
-- Explain in the challenge write-up how open weights enable controlled deployment, model replacement, and inspectable agent behavior.
+- [x] Configure a frozen-lockfile Bun Docker build and managed Fastify/Ollama startup/shutdown.
+- [ ] Execute final Docker build/startup/shutdown and persistent-model restart checks (user-run).
+- [x] Configure model persistence, independent health/readiness, and pinned digest checks.
+- [x] Configure same-origin PWA/API serving, self-hosted fonts, generated install icons, and production security headers.
+- [x] Pin the evaluated candidate model and environment-controlled limits; final tier/model acceptance is pending measurements.
+- [ ] Verify actual Render proxy behavior before altering forwarded-header trust/rate limiting (user-run).
+- [ ] Confirm current pricing, credit eligibility/expiry, remaining runway, and shutdown procedure in the intended account (user-run).
+- [ ] Obtain explicit paid-resource approval and deploy; remote push also needs separate permission.
+- [x] Document setup, configuration, architecture, privacy, model choice, limitations, and release checks.
+- [x] Write the open-weights challenge-explanation foundation; add actual evidence/URL/screenshots only after verification.
 
 ### Verification
 

@@ -15,6 +15,7 @@ export function App() {
   const [privacyOpen, setPrivacyOpen] = useState(false);
   const [productBusy, setProductBusy] = useState(false);
   const [offlineReady, setOfflineReady] = useState(false);
+  const [offlineFailed, setOfflineFailed] = useState(false);
   const [update, setUpdate] = useState<ServiceWorkerRegistration | null>(null);
   const heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
@@ -25,11 +26,14 @@ export function App() {
   }, [session.screen, loaded, privacyOpen]);
   useEffect(() => {
     const ready = () => setOfflineReady(true);
+    const failed = () => setOfflineFailed(true);
     const available = (event: Event) => setUpdate((event as CustomEvent<ServiceWorkerRegistration>).detail);
     window.addEventListener('hobbymaxx-offline-ready', ready);
+    window.addEventListener('hobbymaxx-offline-failed', failed);
     window.addEventListener('hobbymaxx-update', available);
     return () => {
       window.removeEventListener('hobbymaxx-offline-ready', ready);
+      window.removeEventListener('hobbymaxx-offline-failed', failed);
       window.removeEventListener('hobbymaxx-update', available);
     };
   }, []);
@@ -46,6 +50,7 @@ export function App() {
         <Button variant="quiet" disabled={!loaded || busy || productBusy} onClick={() => setPrivacyOpen(true)}>Privacy & data</Button>
       </header>
       <main id="main">
+        {offlineFailed && <p className="connection-banner" role="status">Offline app setup could not finish. Your local history is separate; keep an internet connection to reopen the app and retry offline setup.</p>}
         {update && <div className="connection-banner"><p>A new app version is ready. Reloading interrupts active requests.</p><Button variant="secondary" disabled={busy || storage === 'saving'} onClick={() => {
           if (productBusy) {
             return;

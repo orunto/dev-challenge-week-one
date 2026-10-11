@@ -23,6 +23,8 @@ export function errorCopy(error: unknown): string {
     RATE_LIMITED: 'This connection has reached its request limit. Try again later or edit your preferences yourself.',
     INFERENCE_TIMEOUT: 'Gemma took too long to reply. Retry, or continue to your preferences.',
     INVALID_MODEL_OUTPUT: 'Gemma could not finish a valid response. Retry, or enter your preferences yourself.',
+    OUTPUT_LIMIT: 'Gemma reached its reply limit. Retry with a shorter request or continue to preferences.',
+    INSUFFICIENT_OPTIONS: 'Fewer than three eligible hobbies remain. Broaden your setting or remove some exclusions.',
     INPUT_LIMIT: 'This message is too long for the current model. Shorten it and try again.',
     CONTEXT_LIMIT: 'This conversation needs a shorter context. Continue by entering your preferences yourself.',
     INVALID_REQUEST: 'Check your message or preferences and try again.',
@@ -189,6 +191,9 @@ export async function requestRefresh(body: RefreshRequest, signal: AbortSignal) 
   const value = await response.json();
   const result = recommendationsSchema.safeParse({ recommendations: value?.recommendations });
   if (!result.success || (body.retainedHobbyId && !result.data.recommendations.some((item) => item.hobbyId === body.retainedHobbyId))) {
+    throw new ApiError('INVALID_MODEL_OUTPUT');
+  }
+  if (result.data.recommendations.some((item) => body.previousHobbyIds.includes(item.hobbyId) && item.hobbyId !== body.retainedHobbyId)) {
     throw new ApiError('INVALID_MODEL_OUTPUT');
   }
   return result.data;

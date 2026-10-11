@@ -20,7 +20,7 @@ The build generates a versioned worker using only an explicit list of built HTML
 
 Root navigation is network-first with a cached shell fallback. Listed versioned assets are cache-first. New workers wait; the UI offers an explicit update/reload action, and activation removes obsolete HobbyMaxx shell caches. No model response, profile, export, conversation, or activity record belongs in Cache Storage.
 
-The manifest uses the project-authored SVG app icon. Browser installation/icon support, mobile behavior, cache install/update failures, and offline cold navigation require user verification; metadata alone is not an installability pass.
+The manifest uses the project-authored SVG app icon plus 192/512px PNGs generated from the same monogram during the build. The cache version includes built code, source HTML, manifest, and icon content. Browser installation/icon support, mobile behavior, cache install/update failures, and offline cold navigation require user verification; metadata alone is not an installability pass.
 
 ## User checks
 

@@ -23,7 +23,10 @@ test('serves the built app without spending inference rate limits or masking unk
   };
   const app = await buildApp(readConfig({ RATE_LIMIT_MAX: '1' }), { client, webRoot: root });
   t.after(() => app.close());
-  assert.equal((await app.inject('/')).statusCode, 200);
+  const rootResponse = await app.inject('/');
+  assert.equal(rootResponse.statusCode, 200);
+  assert.equal(rootResponse.headers['referrer-policy'], 'no-referrer');
+  assert.ok(String(rootResponse.headers['content-security-policy']).includes("worker-src 'self'"));
   assert.equal((await app.inject('/')).statusCode, 200);
   const response = await app.inject({
     method: 'POST', url: '/api/chat',

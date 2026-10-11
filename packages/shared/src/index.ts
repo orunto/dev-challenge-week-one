@@ -113,6 +113,7 @@ export const cycleSchema = z.object({
 }).strict().refine((cycle) => {
   const ids = cycle.recommendations.map((item) => item.hobbyId);
   return new Set(ids).size === 3 &&
+    (!cycle.startedOn || Math.abs(Date.parse(cycle.startedOn) - Date.parse(cycle.startedAt.slice(0, 10))) <= 86400000) &&
     Date.parse(cycle.dueAt) - Date.parse(cycle.startedAt) === cycle.cycleDays * 86400000;
 }, { message: 'Invalid cycle IDs or due date.' });
 
@@ -130,7 +131,7 @@ export const activityLogSchema = z.object({
   enjoyment: z.number().int().min(1).max(5),
   difficulty: z.number().int().min(1).max(5),
   reflection: z.string().trim().max(500),
-}).strict();
+}).strict().refine((log) => !log.recordedOn || Math.abs(Date.parse(log.recordedOn) - Date.parse(log.recordedAt.slice(0, 10))) <= 86400000);
 export type ActivityLog = z.infer<typeof activityLogSchema>;
 
 export const refreshRequestSchema = z.object({

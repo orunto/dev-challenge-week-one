@@ -3,6 +3,9 @@ services:
   - type: web
     name: hobbymaxx
     runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    autoDeploy: false
     plan: 1c-2g
     healthCheckPath: /health
     disk:
@@ -10,6 +13,12 @@ services:
       mountPath: /var/data
       sizeGB: 2
     envVars:
+      - key: NODE_ENV
+        value: production
+      - key: OLLAMA_HOST
+        value: 127.0.0.1:11434
+      - key: OLLAMA_URL
+        value: http://127.0.0.1:11434
       - key: HOST
         value: 0.0.0.0
       - key: OLLAMA_MODEL

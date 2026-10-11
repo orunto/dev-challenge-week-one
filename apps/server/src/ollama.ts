@@ -50,7 +50,9 @@ export class OllamaClient implements InferenceClient {
     onToken?: (content: string) => void | Promise<void>,
     format?: Record<string, unknown>,
   ): Promise<Generation> {
-    const state = await this.status();
+    signal.throwIfAborted();
+    const state = await this.status(signal);
+    signal.throwIfAborted();
     if (!state.installed) {
       throw new AppError(503, 'MODEL_MISSING', 'The configured model is not installed.');
     }
@@ -174,8 +176,9 @@ export class OllamaClient implements InferenceClient {
     }
   }
 
-  async status(): Promise<ModelStatus> {
-    const signal = AbortSignal.timeout(3000);
+  async status(cancellation?: AbortSignal): Promise<ModelStatus> {
+    const timeout = AbortSignal.timeout(3000);
+    const signal = cancellation ? AbortSignal.any([cancellation, timeout]) : timeout;
     const [tags, running] = await Promise.all([
       this.fetcher(`${this.config.OLLAMA_URL}/api/tags`, { signal }),
       this.fetcher(`${this.config.OLLAMA_URL}/api/ps`, { signal }),

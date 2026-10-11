@@ -124,3 +124,15 @@ test('rejects changed model artifacts before sending a prompt', async () => {
   });
   assert.equal(chatCalls, 0);
 });
+
+test('an already cancelled generation does not contact the runtime', async () => {
+  let calls = 0;
+  const client = new OllamaClient(config, (async () => {
+    calls++;
+    return Response.json({ models: [] });
+  }) as typeof fetch);
+  const controller = new AbortController();
+  controller.abort();
+  await assert.rejects(client.generate(messages, controller.signal), { name: 'AbortError' });
+  assert.equal(calls, 0);
+});
