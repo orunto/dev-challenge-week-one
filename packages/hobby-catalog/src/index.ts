@@ -5,10 +5,14 @@ export interface Hobby {
   minutes: number;
   environment: 'indoor' | 'outdoor' | 'either';
   activity: string;
+  activityId: string;
+  equipment: readonly string[];
+  accessibleActivity: string;
+  estimatedCost: string;
 }
 
 // A small grounding catalog for phase-one quality evaluation, not an exhaustive list.
-export const hobbies: readonly Hobby[] = [
+const seeds: readonly Omit<Hobby, 'activityId' | 'equipment' | 'accessibleActivity' | 'estimatedCost'>[] = [
   {
     id: 'sketching',
     name: 'Sketching',
@@ -95,5 +99,39 @@ export const hobbies: readonly Hobby[] = [
       'Try a small variation of a familiar meal using ingredients and tools you already have.',
   },
 ];
+
+const equipment: Record<string, string[]> = {
+  sketching: ['Existing paper and pencil, or a drawing app'],
+  'creative-writing': ['Existing paper and pen, or a notes app'],
+  birdwatching: ['An accessible window or safe viewing spot'],
+  walking: ['A familiar accessible route'],
+  'phone-photography': ['An existing camera phone'],
+  origami: ['Scrap paper'],
+  singing: ['A comfortable place; no equipment'],
+  stretching: ['A comfortable seat or standing space'],
+  'plant-care': ['A plant you already own; optional low-cost supplies'],
+  cooking: ['Existing ingredients and kitchen tools'],
+};
+
+const accessibleActivities: Record<string, string> = {
+  sketching: 'Draw one simple shape while seated, using a digital tool if gripping a pencil is uncomfortable.',
+  'creative-writing': 'Dictate three sentences into an existing phone instead of handwriting.',
+  birdwatching: 'Observe birds through an accessible window, without travel or specialist equipment.',
+  walking: 'Explore an accessible familiar route at your own pace; if travel is unsuitable, choose an indoor hobby instead.',
+  'phone-photography': 'Photograph three nearby textures from a comfortable seated position.',
+  origami: 'Try one simple fold with large paper; choose another hobby if folding is uncomfortable.',
+  singing: 'Hum a short familiar melody at a comfortable volume; take breaks whenever needed.',
+  stretching: 'Choose comfortable seated movement within your limits; skip any movement that hurts.',
+  'plant-care': 'Observe a plant within easy reach and learn one care fact without lifting pots.',
+  cooking: 'Plan a simple ingredient variation while seated; avoid heat or sharp tools if unsuitable.',
+};
+
+export const hobbies: readonly Hobby[] = seeds.map((hobby) => ({
+  ...hobby,
+  activityId: `${hobby.id}:starter:v1`,
+  equipment: equipment[hobby.id] ?? [],
+  accessibleActivity: accessibleActivities[hobby.id] ?? hobby.activity,
+  estimatedCost: hobby.cost === 'free' ? 'No purchases; use existing supplies' : 'Use existing supplies, or optional small purchases',
+}));
 
 export const hobbyIds = new Set(hobbies.map((hobby) => hobby.id));

@@ -46,7 +46,7 @@ Fastify will serve the built frontend and API from the same origin. Ollama will 
 
 **Phase two is implemented in source, with user-run verification pending.** The React/Vite onboarding flow, editable preference review, IndexedDB history/resume, and separate model profile-extraction endpoint are written. Dependencies/lockfile installation, formatting, type checks, tests, real-Gemma extraction review, and mobile/browser verification have not been run. See [`docs/phase-two.md`](docs/phase-two.md).
 
-Phases three through six are pending. Deployment for phase-one measurements may happen before the final deployment milestone; provisioning paid resources requires explicit approval.
+**Phase three is implemented in source, with verification pending.** Grounded experiment cards, first activities, catalog metadata, client validation, explicit cycle dates, and transactional current-cycle saving are written. Phases four through six are pending. Deployment for phase-one measurements may happen before the final deployment milestone; provisioning paid resources requires explicit approval.
 
 **Execution preference:** Git inspection, staging, and explicitly approved commits are authorized. The user runs all other processes, including installs, formatting, tests, builds, benchmarks, development servers, and Docker checks. Show the exact drafted message and obtain approval before each commit; use the configured identity without overrides. Remote pushes and paid deployment require separate explicit permission.
 
@@ -119,13 +119,14 @@ This exit criterion has not been verified. Written regression tests and responsi
 
 ### Deliverables
 
-- Expand the catalog with stable hobby/activity IDs, cost, time, equipment, environment, and accessible starter activities.
-- Have Gemma choose exactly three distinct hobbies and explain why they fit the confirmed profile.
-- Display each hobby's rationale, first activity, estimated time/cost, equipment, and a practical adaptation.
-- Validate output shape and catalog membership before saving recommendations.
-- Add a bounded repair attempt for malformed output if evaluation justifies the extra latency.
-- Show retryable failures without saving partial or invalid cycles.
-- Save the successful recommendation set as the current local cycle.
+- [x] Expand catalog metadata with stable hobby/activity IDs, cost, time, equipment, environment, and accessible starter activities.
+- [x] Connect confirmed profiles to Gemma's validated three-hobby selection.
+- [x] Display rationale, first activity, estimated time/cost, equipment, and adaptations.
+- [x] Validate output shape, distinctness, eligibility, and cycle dates before saving.
+- [ ] Add a bounded repair attempt only if user-run quality evaluation justifies the extra latency; no automatic repair is currently enabled.
+- [x] Show retryable failures without saving partial or invalid cycles.
+- [x] Save successful cycles in a transactional IndexedDB library, preserving previous cycles.
+- [ ] Run cycle regression tests and verify real-model generation, reload, and failed-save behavior (user-run).
 
 ### Exit criterion
 

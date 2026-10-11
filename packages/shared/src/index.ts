@@ -101,3 +101,18 @@ export type ChatEvent =
   | { type: 'token'; content: string }
   | { type: 'done'; metrics: InferenceMetrics }
   | { type: 'error'; code: string; message: string };
+
+export const cycleSchema = z.object({
+  id: z.string().uuid(),
+  startedAt: z.iso.datetime(),
+  dueAt: z.iso.datetime(),
+  cycleDays: cycleDaysSchema,
+  profile: profileSchema,
+  recommendations: recommendationsSchema.shape.recommendations,
+}).strict().refine((cycle) => {
+  const ids = cycle.recommendations.map((item) => item.hobbyId);
+  return new Set(ids).size === 3 &&
+    Date.parse(cycle.dueAt) - Date.parse(cycle.startedAt) === cycle.cycleDays * 86400000;
+}, { message: 'Invalid cycle IDs or due date.' });
+
+export type Cycle = z.infer<typeof cycleSchema>;

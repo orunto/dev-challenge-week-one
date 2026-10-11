@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { preferenceDraftSchema, type ChatMessage, type PreferenceDraft } from '@hobbymaxx/shared';
+import { preferenceDraftSchema, recommendationsSchema, type ChatMessage, type PreferenceDraft, type Profile } from '@hobbymaxx/shared';
 
 const encoder = new TextEncoder();
 const eventSchema = z.discriminatedUnion('type', [
@@ -172,4 +172,14 @@ export async function serviceStatus(signal: AbortSignal) {
     modelState: z.object({ installed: z.boolean(), loaded: z.boolean() }),
     limits: z.object({ maxInputBytes: z.number().int().min(100).max(10000) }),
   }).parse(await response.json());
+}
+
+export async function requestRecommendations(profile: Profile, signal: AbortSignal) {
+  const response = await post('/api/recommendations', { profile }, signal);
+  const value = await response.json();
+  const result = recommendationsSchema.safeParse({ recommendations: value?.recommendations });
+  if (!result.success) {
+    throw new ApiError('INVALID_MODEL_OUTPUT');
+  }
+  return result.data;
 }

@@ -10,13 +10,13 @@ export class StorageError extends Error {
   }
 }
 
-function openDatabase(): Promise<IDBDatabase> {
+export function openDatabase(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     if (!globalThis.indexedDB) {
       reject(new StorageError());
       return;
     }
-    const request = indexedDB.open(databaseName, 1);
+    const request = indexedDB.open(databaseName, 2);
     let settled = false;
     const timer = setTimeout(() => {
       settled = true;
@@ -30,6 +30,9 @@ function openDatabase(): Promise<IDBDatabase> {
     request.onupgradeneeded = () => {
       if (!request.result.objectStoreNames.contains(storeName)) {
         request.result.createObjectStore(storeName);
+      }
+      if (!request.result.objectStoreNames.contains('library')) {
+        request.result.createObjectStore('library');
       }
     };
     request.onerror = fail;

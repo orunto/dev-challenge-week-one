@@ -93,7 +93,7 @@ test('an unsupported local record is rejected without replacing its contents', a
   globalThis.indexedDB = indexedDB;
   t.after(() => { globalThis.indexedDB = original; });
   const database = await new Promise<IDBDatabase>((resolve, reject) => {
-    const request = indexedDB.open('hobbymaxx', 1);
+    const request = indexedDB.open('hobbymaxx', 2);
     request.onupgradeneeded = () => {
       if (!request.result.objectStoreNames.contains('onboarding')) {
         request.result.createObjectStore('onboarding');

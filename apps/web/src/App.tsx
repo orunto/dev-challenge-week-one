@@ -4,6 +4,7 @@ import type { CycleDays } from '@hobbymaxx/shared';
 import { BrandMark, Button, Field, WelcomeArtwork } from './components.js';
 import type { ReviewForm } from './session.js';
 import { useOnboarding } from './useOnboarding.js';
+import { Experiments } from './Experiments.js';
 
 type Onboarding = ReturnType<typeof useOnboarding>;
 
@@ -241,6 +242,7 @@ function Confirmed({ onboarding, heading }: ScreenProps) {
   const environment = { indoor: 'Indoors', outdoor: 'Outdoors', either: 'Indoors or outdoors' };
   const company = { solo: 'On your own', social: 'With other people', either: 'Solo or social' };
   return (
+    <>
     <section className="confirmed-layout">
       <div className="confirmed-heading">
         <div className="confirmation-mark" aria-hidden="true">
@@ -289,8 +291,8 @@ function Confirmed({ onboarding, heading }: ScreenProps) {
           )}
         </dl>
         <p className="profile-next">
-          Hobby experiments are the next build phase. Your saved profile is ready for that
-          step; no cycle has started yet.
+          Your confirmed profile guides Gemma’s next suggestions. A cycle starts only after
+          a complete, validated set of experiments is saved.
         </p>
         <Button variant="secondary" disabled={onboarding.busy} onClick={() => onboarding.go('review')}>
           Edit my preferences
@@ -302,5 +304,7 @@ function Confirmed({ onboarding, heading }: ScreenProps) {
         )}
       </div>
     </section>
+    <Experiments profile={profile} days={session.cycleDays} sessionOnly={onboarding.storage === 'session-only'} />
+    </>
   );
 }

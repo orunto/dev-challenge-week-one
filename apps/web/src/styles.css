@@ -157,6 +157,18 @@ summary { min-height: 44px; padding: 12px 0; cursor: pointer; font-weight: 600; 
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .skip-link { position: fixed; top: -100px; left: 12px; padding: 12px 20px; z-index: 10; background: var(--color-ink); color: var(--color-white); }
 .skip-link:focus { top: 12px; }
+.experiments { padding: 24px 0 64px; border-top: 2px solid var(--color-teal); }
+.experiments-heading { display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 24px; }
+.experiments-heading p { max-width: 60ch; }
+.experiment-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; margin-top: 32px; }
+.experiment { background: var(--color-surface); padding: 24px; border: 1px solid var(--color-border); border-radius: var(--radius); }
+.experiment h3 { font-size: 2rem; margin-top: 12px; }
+.experiment > .button { margin-top: 24px; width: 100%; }
+.experiment-meta { font-family: var(--font-label); font-size: 0.6875rem; }
+.activity-detail { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--color-border); }
+.activity-detail h4 { margin: 20px 0 8px; font-size: 0.9375rem; }
+.activity-detail ul { padding-left: 20px; line-height: 1.6; }
+@media (max-width: 900px) { .experiment-grid { grid-template-columns: 1fr; } }
 
 @media (max-width: 900px) {
   .app { padding: 0 24px; }
