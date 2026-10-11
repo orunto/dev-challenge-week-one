@@ -29,12 +29,17 @@ bun install --frozen-lockfile
 
 The project now uses the user-generated `bun.lock`. Frozen installs must match the manifests; when changing dependencies, run `bun install` yourself and review the resulting lockfile. The Docker build uses pinned Bun 1.3.0 for installation and Node 24 for the production API. The Bun migration has not been executed or verified by the agent.
 
-Create `.env` using the values in `.env.example`. With Ollama installed, start `ollama serve` if it is not already running, then:
+Create `.env` using `.env.example`. The existing portable Windows runtime and downloaded Gemma model have been moved into `.runtime/ollama/`. This directory is local-only and excluded from Git, formatting, and Docker build uploads.
+
+One command now starts Ollama and the API together:
 
 ```powershell
-ollama pull gemma3:1b
-bun run dev
+bun run start
 ```
+
+This rebuilds the API, starts `.runtime/ollama/ollama.exe`, reuses `.runtime/ollama/models`, and starts the API under one supervisor. `OLLAMA_HOST` is derived from the same `OLLAMA_URL` used by the API, so their ports agree. `.env` and existing environment variables can still configure `PORT` and the local inference URL. Ctrl+C stops the owned processes; Windows shutdown includes Ollama's owned runner process tree. Stop earlier separately launched instances before using the managed command to avoid occupied ports.
+
+For API source watching, use `bun run dev`; it also manages Ollama. The frontend Vite server remains a separate optional hot-reload terminal:
 
 The API defaults to `http://127.0.0.1:3000`. In a separate terminal, run the frontend:
 
@@ -51,7 +56,9 @@ bun run build
 bun run start
 ```
 
-The build includes self-hosted fonts and the React app in `apps/web/dist`; Fastify serves it at `/` when that directory exists. `.env` is loaded automatically by the API; existing environment variables take precedence. Restart the API after changing configuration. `bun run dev` watches server sources; rebuild shared packages after editing their schemas/catalog. `bun run build:server` builds only shared packages and the API.
+The build includes self-hosted fonts and the React app in `apps/web/dist`; Fastify serves it at `/` when that directory exists. The local launcher loads `.env`; existing environment variables take precedence. Restart the stack after changing configuration. `bun run dev` watches server sources; rebuild shared packages after editing schemas/catalog. `bun run build:server` builds only shared packages and the API. `bun run start:api` starts only the compiled API when managing an inference runtime separately.
+
+The portable runtime is Windows-specific and is not shipped with the repository. On another machine, supply a compatible local Ollama runtime or use Docker, which retains its own image-provided Ollama and persistent model disk. The combined local launcher and shutdown behavior require user-run verification; the relocation itself is complete.
 
 ## Checks
 

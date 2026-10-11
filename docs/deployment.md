@@ -18,7 +18,7 @@ bun run verify
 
 `verify` runs format-check, type checks, synthetic tests, and the production build in sequence, stopping at the first failure. Tests exercise local fixture servers; they do not install or use a real model. Share complete failing output so defects can be fixed in a separately approved commit.
 
-Run the built same-origin app with `bun run start`. With the portable Ollama runtime, configure its actual URL first. Confirm the root HTML, hashed assets, locally hosted fonts, manifest, and worker load. The production CSP permits only same-origin scripts/fonts/workers/connections; it must be browser-checked along with export downloads, offline install, and updates.
+Run the built same-origin app with `bun run start`. This rebuilds the API and launches the workspace-local portable Ollama plus the API through one supervisor. Runtime files/model data live in ignored `.runtime/ollama`; both processes use the configured `OLLAMA_URL` port. Stop earlier standalone instances first. Use `bun run start:api` only when managing Ollama separately. Confirm the root HTML, hashed assets, locally hosted fonts, manifest, and worker load. The production CSP permits only same-origin scripts/fonts/workers/connections; it must be browser-checked along with export downloads, offline install, and updates.
 
 ## Docker candidate
 

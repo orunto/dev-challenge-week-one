@@ -50,6 +50,8 @@ Fastify will serve the built frontend and API from the same origin. Ollama will 
 
 **Execution preference:** Git inspection, staging, and explicitly approved commits are authorized. The user runs all other processes, including installs, formatting, tests, builds, benchmarks, development servers, and Docker checks. Show the exact drafted message and obtain approval before each commit; use the configured identity without overrides. Remote pushes and paid deployment require separate explicit permission.
 
+The portable Windows Ollama runtime and existing Gemma files were relocated into ignored `.runtime/ollama/` at the user's explicit request. Local `start`/`dev` now supervise Ollama and the API together; the agent did not start or stop either service. Combined startup/shutdown remains user-run verification.
+
 ## Phase 1 — Prove hosted Gemma feasibility
 
 ### Deliverables
