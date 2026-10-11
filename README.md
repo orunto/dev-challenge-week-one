@@ -17,29 +17,29 @@ Git inspection, staging, and individually approved commits are authorized. The u
 ## Requirements
 
 - Node.js 22.12+ (development baseline was verified on Node 24).
-- npm with workspaces support.
+- Bun 1.3.0 for package management/scripts; Node remains the server and test runtime.
 - Ollama for real local inference, or Docker for the complete Linux deployment container.
 - Review the [Gemma license](https://ai.google.dev/gemma/terms) for model use and redistribution.
 
 ## Local development
 
 ```powershell
-npm install
+bun install --frozen-lockfile
 ```
 
-**First phase-two setup:** new dependency manifests are written, but `package-lock.json` has not been regenerated because process execution is user-run. Run `npm install` once, review the updated lockfile, and use `npm ci` for reproducible installs afterward. Docker's `npm ci` requires that synchronized lockfile.
+The project now uses the user-generated `bun.lock`. Frozen installs must match the manifests; when changing dependencies, run `bun install` yourself and review the resulting lockfile. The Docker build uses pinned Bun 1.3.0 for installation and Node 24 for the production API. The Bun migration has not been executed or verified by the agent.
 
 Create `.env` using the values in `.env.example`. With Ollama installed, start `ollama serve` if it is not already running, then:
 
 ```powershell
 ollama pull gemma3:1b
-npm run dev
+bun run dev
 ```
 
 The API defaults to `http://127.0.0.1:3000`. In a separate terminal, run the frontend:
 
 ```powershell
-npm run dev:web
+bun run dev:web
 ```
 
 Open `http://127.0.0.1:5173`. The Vite proxy forwards `/api` to port 3000 without a cross-origin browser request. If your API uses another port, set `API_PROXY_URL` in the frontend terminal first. For example: `$env:API_PROXY_URL = 'http://127.0.0.1:3001'`.
@@ -47,21 +47,21 @@ Open `http://127.0.0.1:5173`. The Vite proxy forwards `/api` to port 3000 withou
 For compiled same-origin execution:
 
 ```powershell
-npm run build
-npm start
+bun run build
+bun run start
 ```
 
-The build includes self-hosted fonts and the React app in `apps/web/dist`; Fastify serves it at `/` when that directory exists. `.env` is loaded automatically by the API; existing environment variables take precedence. Restart the API after changing configuration. `npm run dev` watches server sources; rebuild shared packages after editing their schemas/catalog. `npm run build:server` builds only shared packages and the API.
+The build includes self-hosted fonts and the React app in `apps/web/dist`; Fastify serves it at `/` when that directory exists. `.env` is loaded automatically by the API; existing environment variables take precedence. Restart the API after changing configuration. `bun run dev` watches server sources; rebuild shared packages after editing their schemas/catalog. `bun run build:server` builds only shared packages and the API.
 
 ## Checks
 
 ```powershell
-npm run format:check
-npm run typecheck
-npm test
+bun run format:check
+bun run typecheck
+bun run test
 ```
 
-Format supported source files, configurations, tests, scripts, and Markdown with `npm run format`. Prettier uses two-space indentation, single quotes, and a 90-column code width. Use explicit blocks for control flow so review and debugging remain straightforward. Generated output, benchmark reports, environment files, and the dependency lockfile are excluded.
+Format supported source files, configurations, tests, scripts, and Markdown with `bun run format`. Prettier uses two-space indentation, single quotes, and a 90-column code width. Use explicit blocks for control flow so review and debugging remain straightforward. Generated output, benchmark reports, environment files, and the dependency lockfile are excluded.
 
 Tests use synthetic inference clients and `fake-indexeddb`; they never install a model or send personal information to a provider. Some integration tests start local fixture APIs and remove temporary reports or frontend fixture files afterward. These are user-run processes.
 
@@ -70,13 +70,13 @@ Tests use synthetic inference clients and `fake-indexeddb`; they never install a
 With a real model and the API running:
 
 ```powershell
-npm run benchmark -- --save-responses
+bun run benchmark --save-responses
 ```
 
 This uses five synthetic scenarios, each tested against chat and recommendations. Reports go to ignored `benchmark-results/`. Responses are excluded unless `--save-responses` is specified; enabling it is useful for reviewing these synthetic fixtures. Do not replace fixtures with real users' conversations.
 
 ```powershell
-npm run benchmark -- --url https://YOUR-SERVICE.onrender.com --concurrency 3 --save-responses
+bun run benchmark --url https://YOUR-SERVICE.onrender.com --concurrency 3 --save-responses
 ```
 
 For repeated benchmarks, temporarily increase `RATE_LIMIT_MAX` on the benchmark deployment to avoid exhausting the default 20-generation-per-hour limit. Revert it before sharing publicly.
@@ -84,7 +84,7 @@ For repeated benchmarks, temporarily increase `RATE_LIMIT_MAX` on the benchmark 
 Use `--cases` to rerun specific synthetic scenarios:
 
 ```powershell
-npm run benchmark -- --cases low-energy-accessibility,conflicting-preferences --save-responses
+bun run benchmark --cases low-energy-accessibility,conflicting-preferences --save-responses
 ```
 
 ## API

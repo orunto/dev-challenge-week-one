@@ -105,7 +105,7 @@ The pinned model is a viable development candidate for a slow single-user demo, 
 - [x] Let users choose a 7- or 14-day cycle without starting a cycle during onboarding.
 - [x] Implement IndexedDB resume/save and optional raw-conversation removal on confirmation.
 - [x] Add regression tests for extraction, stream framing/cancellation, storage ordering, and frontend serving.
-- [ ] Install the new dependencies and update `package-lock.json` (user-run).
+- [ ] Verify the user-generated `bun.lock` with a frozen install (user-run).
 - [ ] Run formatting, type checks, tests, and the production build (user-run).
 - [ ] Verify real Gemma extraction quality, reload/resume, narrow layouts, and mobile-keyboard behavior (user-run).
 
@@ -199,7 +199,8 @@ A public demo supports the complete core loop on inexpensive phones with interne
 ## Working conventions
 
 - Keep model integration behind an adapter and domain schemas in shared packages.
-- Format supported source/config/documentation files with `npm run format` and check them with `npm run format:check`.
+- Use Bun 1.3.0 and `bun.lock` for dependency management; Node remains the API/test runtime.
+- Format supported source/config/documentation files with `bun run format` and check them with `bun run format:check`.
 - Prefer explicit blocks and readable control flow over compressed one-line statements.
 - Run type checks and relevant existing tests after code changes.
 - Do not treat mocked tests as evidence of model quality, actual memory use, or Render performance.

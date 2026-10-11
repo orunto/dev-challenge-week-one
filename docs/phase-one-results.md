@@ -96,10 +96,10 @@ The Render `1c-2g` service remains a budget-first test candidate, not a verified
 First run the code checks:
 
 ```powershell
-npm run format
-npm run format:check
-npm run typecheck
-npm test
+bun run format
+bun run format:check
+bun run typecheck
+bun run test
 ```
 
 Restart the API so the current source/build is used. If reusing the portable runtime on port 11435:
@@ -108,13 +108,13 @@ Restart the API so the current source/build is used. If reusing the portable run
 $env:OLLAMA_URL = 'http://127.0.0.1:11435'
 $env:PORT = '3001'
 $env:RATE_LIMIT_MAX = '1000'
-npm run dev
+bun run dev
 ```
 
 In another terminal, rerun the affected cases:
 
 ```powershell
-npm run benchmark -- --url http://127.0.0.1:3001 --cases low-energy-accessibility,conflicting-preferences --save-responses
+bun run benchmark --url http://127.0.0.1:3001 --cases low-energy-accessibility,conflicting-preferences --save-responses
 ```
 
 Inspect those synthetic responses before marking the quality gate complete. If successful, run the full sequential and three-client benchmarks against the final code, then verify Docker and the actual Render tier. Save results with the model digest and settings, and revert the public rate limit after benchmarking.

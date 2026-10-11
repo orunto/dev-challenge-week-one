@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "packageManager": "bun@1.3.0",
   "workspaces": [
     "apps/*",
     "packages/*"
@@ -11,14 +12,14 @@
     "node": ">=22.12"
   },
   "scripts": {
-    "build": "npm run build:server && npm run build --workspace @hobbymaxx/web",
+    "build": "bun run build:server && bun run --filter @hobbymaxx/web build",
     "build:server": "tsc -b",
-    "typecheck": "tsc -b && tsc -p tsconfig.tools.json && npm run typecheck --workspace @hobbymaxx/web",
-    "dev": "npm run build:server && npm run dev --workspace @hobbymaxx/server",
-    "dev:web": "npm run dev --workspace @hobbymaxx/web",
+    "typecheck": "tsc -b && tsc -p tsconfig.tools.json && bun run --filter @hobbymaxx/web typecheck",
+    "dev": "bun run build:server && bun run --filter @hobbymaxx/server dev",
+    "dev:web": "bun run --filter @hobbymaxx/web dev",
     "start": "node apps/server/dist/index.js",
-    "test": "npm run build:server && tsx --test apps/server/test/*.test.ts apps/web/test/*.test.ts",
-    "benchmark": "npm run build:server && tsx scripts/benchmark.ts",
+    "test": "bun run build:server && tsx --test apps/server/test/*.test.ts apps/web/test/*.test.ts",
+    "benchmark": "bun run build:server && tsx scripts/benchmark.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },

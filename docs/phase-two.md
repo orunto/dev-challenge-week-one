@@ -49,35 +49,35 @@ The frontend uses npm-packaged self-hosted Barlow Semi Condensed 700/800, Inter 
 
 The Vite development server proxies `/api` to `http://127.0.0.1:3000` by default. `API_PROXY_URL` can override that target. Production builds emit `apps/web/dist`; Fastify serves those assets from the same origin, without spending generation-rate allowances on fonts or scripts. Unknown API routes do not become HTML application responses.
 
-No packages or font files have been downloaded yet. Manifest changes require a user-run `npm install` and review of the regenerated lockfile before Docker's `npm ci` can succeed.
+The user supplied `bun.lock` after a local Bun installation. Bun 1.3.0 is now pinned for package management and Docker installation; Node remains the server/test runtime. A user-run frozen install and Docker build must verify that lockfile. The agent has not run either.
 
 ## User-run verification
 
 ### Install and checks
 
 ```powershell
-npm install
-npm run format
-npm run format:check
-npm run typecheck
-npm test
-npm run build
+bun install --frozen-lockfile
+bun run format
+bun run format:check
+bun run typecheck
+bun run test
+bun run build
 ```
 
-`npm install` is required once to synchronize the lockfile with the new workspace/dependencies. Subsequent clean installs should use `npm ci`.
+Use `bun install` when deliberately changing dependencies and review the lockfile; clean/reproducible installs use `bun install --frozen-lockfile`.
 
 ### Development
 
 Start the API with the desired Ollama URL/port in one terminal:
 
 ```powershell
-npm run dev
+bun run dev
 ```
 
 In a separate terminal:
 
 ```powershell
-npm run dev:web
+bun run dev:web
 ```
 
 Open `http://127.0.0.1:5173`. If reusing the existing API on port 3001, set `$env:API_PROXY_URL = 'http://127.0.0.1:3001'` before starting the frontend. The existing API needs restarting on the new source to expose `/api/preferences` and status input limits.
@@ -85,7 +85,7 @@ Open `http://127.0.0.1:5173`. If reusing the existing API on port 3001, set `$en
 For same-origin production serving, after building:
 
 ```powershell
-npm start
+bun run start
 ```
 
 Manage previously started API/Ollama processes yourself before starting replacements.

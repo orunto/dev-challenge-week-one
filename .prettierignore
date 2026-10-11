@@ -3,6 +3,6 @@ node_modules/
 coverage/
 benchmark-results/
 hobbymaxx-benchmark-test-*/
-package-lock.json
+bun.lock
 .env
 .env.*
