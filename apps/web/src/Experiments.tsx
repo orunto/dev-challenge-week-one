@@ -98,7 +98,7 @@ export function Experiments({
     controller.current = request;
     setBusy(true);
     setError('');
-    setNotice('Gemma is finding three experiments. This can take a minute or more.');
+    setNotice('Finding hobbies…');
     let committing = false;
     try {
       let output;
@@ -154,8 +154,8 @@ export function Experiments({
       setSelected(null);
       setNotice(
         sessionOnly
-          ? 'Your experiments are ready for this session only.'
-          : 'Your experiments are saved on this browser.',
+          ? 'Ready for this session.'
+          : 'Hobbies saved.',
       );
     } catch (cause) {
       setError(
@@ -180,7 +180,7 @@ export function Experiments({
       setLibrary(next);
       const earned = points(next.logs) - before;
       setNotice(
-        `${sessionOnly ? 'Attempt recorded for this session.' : 'Attempt saved.'} ${earned > 0 ? `You earned ${earned} points.` : 'No duplicate points awarded; every attempt is still worth recording.'}`,
+        `${sessionOnly ? 'Recorded for this session.' : 'Attempt saved.'} ${earned > 0 ? `+${earned} points.` : ''}`,
       );
     } finally {
       setLogging(false);
@@ -190,16 +190,16 @@ export function Experiments({
     <section className="experiments" aria-labelledby="experiments-heading">
       <div className="experiments-heading">
         <div>
-          <h2 id="experiments-heading">A few things to try.</h2>
+          <h1 id="experiments-heading" data-view-heading tabIndex={-1}>Your hobbies</h1>
           <p>
             {cycle
-              ? `Your ${cycle.cycleDays}-day experiment · next refresh ${new Date(cycle.dueAt).toLocaleDateString()}`
-              : 'Gemma will choose three distinct hobbies from the grounded catalog using your confirmed preferences.'}
+               ? `Refresh ${new Date(cycle.dueAt).toLocaleDateString()}`
+               : 'Three things to try.'}
           </p>
         </div>
         {!cycle && (
           <Button disabled={busy || !loaded} onClick={() => void generate()}>
-            Find my hobbies
+             Find hobbies
           </Button>
         )}
         {cycle && (
@@ -213,37 +213,27 @@ export function Experiments({
             disabled={saving}
             onClick={() => controller.current?.abort()}
           >
-            {saving ? 'Saving experiments…' : 'Cancel generation'}
+             {saving ? 'Saving…' : 'Stop'}
           </Button>
         )}
       </div>
       {error && (
         <p className="error-banner" role="alert">
-          Error: {error}
+          {error}
         </p>
       )}
       <p role="status">{notice}</p>
-      {cycle && (
-        <div className="refresh-panel">
-          <h3>
-            {isDue(cycle, now)
-              ? 'Ready for a fresh set?'
-              : 'Time to explore, without rushing.'}
-          </h3>
-          <p>
-            Refresh sends your confirmed profile and the latest rating for each hobby,
-            with up to 160 characters of each reflection when the request budget permits.
-            Full notes stay locally. The current cycle remains until a new set is
-            successfully saved.
-          </p>
-          <label htmlFor="retain-hobby">Keep a favorite, if you like</label>
+      {cycle && isDue(cycle, now) && (
+        <details className="refresh-panel">
+          <summary>Refresh hobbies</summary>
+          <label htmlFor="retain-hobby">Keep a favorite?</label>
           <select
             id="retain-hobby"
             value={retained}
             disabled={busy}
             onChange={(event) => setRetained(event.target.value)}
           >
-            <option value="">Explore three new hobbies</option>
+            <option value="">Three new hobbies</option>
             {cycle.recommendations.map((item) => (
               <option key={item.hobbyId} value={item.hobbyId}>
                 {hobbies.find((hobby) => hobby.id === item.hobbyId)?.name}
@@ -251,11 +241,9 @@ export function Experiments({
             ))}
           </select>
           <Button disabled={busy || !isDue(cycle, now)} onClick={() => void generate()}>
-            {isDue(cycle, now)
-              ? 'Refresh my experiments'
-              : `Refresh available ${new Date(cycle.dueAt).toLocaleDateString()}`}
+            Refresh
           </Button>
-        </div>
+        </details>
       )}
       {cycle && (
         <div className="experiment-grid">
@@ -264,36 +252,33 @@ export function Experiments({
             const minutes = Math.min(hobby.minutes, cycle.profile.minutesPerSession);
             return (
               <article className="experiment" key={item.hobbyId}>
+                <header>
+                  <h3>{hobby.name}</h3>
                 <span className="experiment-meta">
-                  Up to {minutes} min ·{' '}
-                  {hobby.cost === 'free' ? 'No purchases' : 'Low cost'}
+                  {minutes} min · {hobby.cost === 'free' ? 'Free' : 'Low cost'}
                 </span>
-                <h3>{hobby.name}</h3>
+                </header>
                 <p>{item.reason}</p>
                 <Button
                   variant="secondary"
                   aria-expanded={selected === hobby.id}
                   onClick={() => setSelected(selected === hobby.id ? null : hobby.id)}
                 >
-                  {selected === hobby.id ? 'Close activity' : 'Open first activity'}
+                  {selected === hobby.id ? 'Close' : 'Try this'}
                 </Button>
                 {selected === hobby.id && (
                   <div className="activity-detail">
-                    <h4>Your first experiment</h4>
                     <p>{item.firstActivity}</p>
-                    <h4>Make it work for you</h4>
+                    <details><summary>Supplies & adaptations</summary>
                     <p>{item.adaptation}</p>
                     <p>{hobby.accessibleActivity}</p>
-                    <h4>What you’ll need</h4>
                     <ul>
                       {hobby.equipment.map((equipment) => (
                         <li key={equipment}>{equipment}</li>
                       ))}
                     </ul>
-                    <p className="field__hint">
-                      {hobby.estimatedCost}. Check the activity before trying it; skip
-                      anything unsuitable.
-                    </p>
+                    <p className="field__hint">{hobby.estimatedCost}</p>
+                    </details>
                     <ActivityForm
                       key={`${cycle.id}/${hobby.id}`}
                       cycle={cycle}
@@ -309,7 +294,7 @@ export function Experiments({
       )}
       {library.cycles.length > 0 && (
         <details className="history">
-          <summary>Your exploration history</summary>
+          <summary>Activity history</summary>
           {[...library.cycles].reverse().map((past) => (
             <section key={past.id}>
               <h3>

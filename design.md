@@ -1,13 +1,13 @@
 # HobbyMaxx design system
 
-Status: approved direction for the demo and subsequent MVP.
+Status: approved palette, with a user-requested minimal, mobile-first chat composition.
 Source: the user-supplied **Hacktoberfest 2026 (alpha)** design system. This is a HobbyMaxx adaptation, not a claim of Hacktoberfest affiliation.
 
 ## Product and visual intent
 
 HobbyMaxx uses an open-weight Gemma model to turn a personal conversation into three hobby experiments. Users log attempts, earn points, and refresh recommendations on a 7- or 14-day cycle.
 
-**Bold on arrival, calm during personal conversations.** Use geometric maximalism for the welcome experience, with warm cream, forest teal, coral actions, gold rewards, and precise geometric accents. The working app prioritizes reading, completing tasks, and reassurance over decoration.
+**Chat first.** HobbyMaxx is a chatbot with recommendation and record-keeping utilities. The welcome screen contains a heading, one short subtitle, and one CTA. It opens directly into a full-height chat where Gemma generates the first question. Preserve cream, forest teal, coral actions, and restrained gold rewards; remove large decorative heroes, sidebars, progress steppers, marketing panels, and explanatory cards. Privacy, connection details, storage explanations, and data controls belong behind the header info icon.
 
 The voice is direct, encouraging, inclusive, and never gatekeeping. Reward exploration, not performance, oversharing, or daily streaks. Use HobbyMaxx as the product identity; any Hacktoberfest acknowledgment is secondary. Do not use the Hacktoberfest favicon as the HobbyMaxx app icon.
 
@@ -83,7 +83,7 @@ Self-host the required font files and weights, with readable system fallbacks. U
 
 ### Buttons
 
-Primary: coral background, near-black text, Martian Mono label-md, 8px radius, 2px matching border, 10px 17px padding, minimum 44px height, elevation md. Secondary: transparent, near-black text and 2px border; hover uses surface-container-high. Support wrapping/localized labels rather than clipping at a fixed height.
+Primary: coral background, near-black text, Inter, 8px radius, minimum 44px height. Use flat controls without decorative shadows. Secondary utility actions use simple text or a thin outline. Icon controls are at least 44px and always have accessible names. Support wrapping/localized labels rather than clipping at a fixed height.
 
 Hover and active states must use verified accessible colors. The source's white-on-red hover and near-black-on-red active states fail 4.5:1 for small labels and must not be copied unchanged. Select a darker derived red for white labels when implementing, and verify every state.
 
@@ -104,12 +104,12 @@ Use at least 44px touch targets, keyboard access, visible focus, semantic headin
 
 ## Screen direction
 
-1. **Welcome:** teal hero, cream headline, geometric corner accents, one coral action. Suggested heading: “Find your next thing.” Explain hosted processing before conversation begins.
-2. **Conversation:** calm cream canvas, readable Inter messages, clearly identified speakers, keyboard-aware composer. Include waiting, generating, cancel, retry, and service-unavailable states. No patterns behind messages.
-3. **Preference review:** editable interests and constraints, clear 7/14-day selection, “Find my hobbies” action, optional conversation deletion.
-4. **Current cycle:** three hobby experiments with rationale, first activity, time, cost, equipment, and accessible alternatives. Compact gold-accented points and next-refresh information.
+1. **Welcome:** “Find your next thing.”, one short subtitle, and “Let’s chat”. No artwork, secondary panels, footer slogans, or extra onboarding CTAs. The info icon is available before starting.
+2. **Conversation:** messages and a bottom composer, filling the available mobile viewport. Gemma generates its own opening question through the streaming API; never substitute a hardcoded question or display a synthetic user turn. Assistant text is unboxed; user replies use a restrained bubble. Only contextual thinking, stop, retry, offline/error states, and compact utility actions are visible.
+3. **Preference review:** a short editable utility form, not a marketing page. Keep visible labels, required choices, 7/14-day selection, and optional conversation deletion; show validation guidance only when needed.
+4. **Current cycle:** three simple hobby rows with rationale and time/cost. Expand the starter when requested; disclose supplies/adaptations behind a details control. Keep points, history, and due refresh controls compact.
 5. **Reflection:** brief enjoyment/difficulty form, optional note, a clear save action, restrained reduced-motion-friendly points celebration.
-6. **History and privacy:** past cycles and activities; export/import; delete conversation; erase local data with explicit consequences.
+6. **Information and privacy:** a native dialog opened by an accessible info icon holds privacy/processing explanations, service/storage details, and a link to data management. Record history remains a compact disclosure within the hobby utility. Destructive actions retain explicit consequences and confirmation.
 
 ## Truthful UI copy and states
 
@@ -119,4 +119,4 @@ Offline users can view saved recommendations and log activities. AI replies and 
 
 ## Implementation order
 
-Phase one proves hosted inference, quality, memory, and latency. Before UI implementation, extract these tokens and reusable controls, then build onboarding, recommendation cards, reflection, history, and privacy states. Verify the complete interface at mobile and desktop sizes in bounded review passes.
+Start with the mobile single-column composition; widen its reading measure on desktop rather than introducing a dashboard. Use Inter for controls and reading, Barlow for headings; the mono family is not loaded when unused. The chat log scrolls independently, the composer remains at the bottom, and viewport height responds to the mobile keyboard. Verify the interface at narrow widths and desktop, including focus trapping/restoration in the info dialog, with user-run bounded review passes.

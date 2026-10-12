@@ -59,6 +59,7 @@ export function useOnboarding() {
   const sessionOnly = useRef(false);
   const historyLoaded = useRef(false);
   const privacyPaused = useRef(false);
+  const openingAttempted = useRef(false);
 
   useEffect(() => {
     mounted.current = true;
@@ -165,7 +166,7 @@ export function useOnboarding() {
     update({ screen });
   }
 
-  async function chat(content?: string) {
+  async function chat(content?: string, opening = false) {
     if (active.current || operation === 'saving' || !session.acceptedHostedProcessing) {
       return;
     }
@@ -186,18 +187,24 @@ export function useOnboarding() {
       ? [...session.messages, message('user', content.trim())]
       : session.messages;
     const complete = history.filter((item) => item.status === 'complete');
-    if (complete.at(-1)?.role !== 'user') {
+    if (!opening && complete.at(-1)?.role !== 'user') {
+      return;
+    }
+    if (opening && complete.length > 0) {
       return;
     }
     let context;
     try {
-      context = boundedContext(complete, maxInputBytes);
+      context = opening ? { messages: [], omitted: false } : boundedContext(complete, maxInputBytes);
     } catch (cause) {
       setError(errorCopy(cause));
       return;
     }
     const controller = new AbortController();
     active.current = controller;
+    if (opening) {
+      openingAttempted.current = true;
+    }
     setOperation('waiting');
     setError('');
     setNotice('');
@@ -221,6 +228,7 @@ export function useOnboarding() {
             setPartial(reply);
           }
         },
+        opening,
       );
       if (!reply.trim()) {
         throw new ApiError('INVALID_MODEL_OUTPUT');
@@ -228,16 +236,12 @@ export function useOnboarding() {
       completeReply = true;
       if (mounted.current) {
         setAvailability('ready');
-        setNotice(
-          'Gemma replied. You can answer, skip this question, or review your preferences.',
-        );
+        setNotice('Gemma replied.');
       }
     } catch (cause) {
       if (mounted.current) {
         if (controller.signal.aborted) {
-          setNotice(
-            'Reply stopped. Any unfinished text is marked below and will not be sent back to Gemma.',
-          );
+          setNotice('Stopped.');
         } else {
           setError(errorCopy(cause));
         }
@@ -257,6 +261,25 @@ export function useOnboarding() {
         setOperation('idle');
       }
       active.current = null;
+    }
+  }
+
+  useEffect(() => {
+    if (loaded && online && session.screen === 'conversation' &&
+      session.acceptedHostedProcessing && session.messages.length === 0 &&
+      !openingAttempted.current && !active.current) {
+      void chat(undefined, true);
+    }
+  }, [loaded, online, session.screen, session.acceptedHostedProcessing, session.messages.length]);
+
+  function startConversation() {
+    if (!busy) {
+      if (!session.messages.some((item) => item.status === 'complete')) {
+        openingAttempted.current = false;
+      }
+      setError('');
+      setNotice('');
+      update({ acceptedHostedProcessing: true, screen: 'conversation' });
     }
   }
 
@@ -299,16 +322,12 @@ export function useOnboarding() {
           screen: 'review',
           confirmedProfile: null,
         });
-        setNotice(
-          'This is Gemma’s draft from your recent answers. Check every field; unstated preferences are blank.',
-        );
+        setNotice('Check your preferences.');
       }
     } catch (cause) {
       if (mounted.current) {
         if (controller.signal.aborted) {
-          setNotice(
-            'Profile extraction stopped. Your conversation and previous edits are still here.',
-          );
+          setNotice('Stopped.');
         } else {
           setError(errorCopy(cause));
         }
@@ -458,6 +477,7 @@ export function useOnboarding() {
       setStorage('saved');
       setError('');
       setNotice('');
+      openingAttempted.current = false;
     }
     privacyPaused.current = false;
     resumeStorageWrites();
@@ -482,6 +502,8 @@ export function useOnboarding() {
     update,
     go,
     chat,
+    startConversation,
+    retryReply: () => chat(undefined, !session.messages.some((item) => item.status === 'complete')),
     reviewWithGemma,
     confirm,
     retryStorage,

@@ -10,6 +10,8 @@ Phase two adds a React/Vite welcome, conversation, editable preference review, a
 
 Phases three through five add grounded experiment cards, saved cycles, activity/reflection logging, derived points, feedback-informed refreshes with an optional retained favorite, history, privacy controls, validated JSON export/import, and offline app-shell/PWA source. These additions are also unverified. The full roadmap is in [`plan.md`](plan.md), and the approved UI specification is in [`design.md`](design.md).
 
+The interface is now chat-first and mobile-first: a heading/subtitle/CTA opens a real Gemma-generated opening turn. Privacy and service details are behind the info icon. Recommendations, preference edits, and activity history are compact secondary utilities. This UI revision still needs user-run build/browser verification.
+
 **Real Gemma CPU baseline benchmarks are recorded, but phase-one verification is still open.** Sequential requests completed 10/10; the three-client run completed 3/10 and timed out seven queued requests. Baseline review identified constraint violations, prompting eligibility filtering and model-digest enforcement. The post-change rerun was interrupted, so final checks and updated quality review are pending. Docker/Render performance and total container peak memory remain unverified. See [`docs/phase-one-results.md`](docs/phase-one-results.md) and [`docs/phase-one.md`](docs/phase-one.md).
 
 Git inspection, staging, and individually approved commits are authorized. The user runs all other processes, including installs, formatting, tests, builds, benchmarks, servers, and Docker checks. Each exact commit message requires approval; remote pushes and paid deployment require separate permission.
@@ -123,6 +125,8 @@ Chat request:
 ```
 
 Chat events are `started`, `token`, and then `done` **or** `error`. HTTP 200 alone does not mean a streamed generation succeeded. Do not save partial responses as complete replies after a terminal error. Model roles/instructions are controlled by the server; clients may submit only user/assistant messages.
+
+The opening turn uses `{ "messages": [], "opening": true }`. Only an empty opening request is accepted; the server supplies the instruction that asks Gemma to greet and ask one question. No synthetic user message is saved or displayed in the browser. Normal chat requests must still end with a user message.
 
 Preference extraction uses the same `{ "messages": [...] }` request shape, but permits the last message to be from the assistant. Only user messages enter the extraction prompt. The result is `{ "profile": {...}, "metrics": {...} }`; unknown scalar preferences are `null`, and unknown lists are empty. Shape and known hobby exclusions are enforced; the person must review factual accuracy before confirmation.
 

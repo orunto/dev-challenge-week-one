@@ -18,6 +18,7 @@ import { memorySnapshot } from './memory.js';
 import { OllamaClient, type InferenceClient, type ModelMessage } from './ollama.js';
 import {
   onboardingPrompt,
+  openingPrompt,
   parsePreferences,
   preferenceFormat,
   preferenceMessages,
@@ -201,7 +202,9 @@ export async function buildApp(
     const body = chatRequestSchema.parse(request.body);
     const messages: ModelMessage[] = [
       { role: 'system', content: onboardingPrompt },
-      ...body.messages,
+      ...(body.opening
+        ? [{ role: 'user' as const, content: openingPrompt }]
+        : body.messages),
     ];
     validateBudget(messages, body.messages);
     const connection = lifecycle(request, reply);

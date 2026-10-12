@@ -33,6 +33,33 @@ const metrics = {
   loadMs: 0,
 };
 
+test('Gemma opens the chat from a server-owned prompt, without caller-supplied opening text', async (t) => {
+  const received: ModelMessage[][] = [];
+  const app = await buildApp(config, {
+    client: fakeClient(async (messages, _signal, onToken) => {
+      received.push(messages);
+      await onToken?.('Hi! What do you enjoy doing?');
+      return { content: 'Hi! What do you enjoy doing?', metrics };
+    }),
+  });
+  t.after(() => app.close());
+  const opening = await app.inject({
+    method: 'POST', url: '/api/chat', payload: { messages: [], opening: true },
+  });
+  assert.equal(opening.statusCode, 200);
+  assert.ok(opening.body.includes('What do you enjoy doing?'));
+  assert.equal(received[0]?.length, 2);
+  assert.equal(received[0]?.[0]?.role, 'system');
+  assert.equal(received[0]?.[1]?.role, 'user');
+  const supplied = await app.inject({
+    method: 'POST', url: '/api/chat',
+    payload: { opening: true, messages: [{ role: 'user', content: 'CALLER_OPENING_INSTRUCTIONS' }] },
+  });
+  assert.equal(supplied.statusCode, 400);
+  assert.equal((await app.inject({ method: 'POST', url: '/api/chat', payload: { messages: [] } })).statusCode, 400);
+  assert.equal(received.length, 1);
+});
+
 function fakeClient(generate?: InferenceClient['generate']): InferenceClient {
   return {
     status: async () => ({

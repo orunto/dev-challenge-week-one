@@ -54,25 +54,14 @@ export function BrandMark() {
   );
 }
 
-export function WelcomeArtwork() {
-  return (
-    <svg className="welcome-art" viewBox="0 0 440 440" aria-hidden="true">
-      <g fill="var(--color-cream)">
-        <path d="M40 64h240v32H40zM40 120h184v32H40zM40 176h128v32H40z" />
-        <path d="M248 224h48v48h-48zM296 272h48v48h-48zM344 320h48v48h-48z" />
-      </g>
-      <g fill="var(--color-coral)">
-        <path d="M328 64h64v64h-64zM264 128h64v64h-64zM200 192h64v64h-64z" />
-        <path d="M48 304h112v112H48z" />
-      </g>
-      <g fill="var(--color-gold)">
-        <path d="M48 256h48v48H48zM160 368h48v48h-48z" />
-        <circle cx="348" cy="200" r="28" />
-      </g>
-      <path
-        d="M64 320h80v16H64zM64 352h80v16H64zM64 384h80v16H64z"
-        fill="var(--color-teal)"
-      />
-    </svg>
-  );
+export function Icon({ name }: { name: 'info' | 'back' | 'send' | 'stop' | 'close' | 'book' }) {
+  const shapes = {
+    info: <><circle cx="12" cy="12" r="9" /><path d="M12 11v6M12 7v1" /></>,
+    back: <path d="m14 5-7 7 7 7M7 12h13" />,
+    send: <><path d="m4 4 17 8-17 8 3-8-3-8ZM7 12h14" /></>,
+    stop: <rect x="6" y="6" width="12" height="12" rx="1" />,
+    close: <path d="m6 6 12 12M18 6 6 18" />,
+    book: <><path d="M4 4h7a3 3 0 0 1 3 3v14a4 4 0 0 0-3-1H4V4ZM14 7h6v13h-6" /><path d="M7 8h3M7 12h3" /></>,
+  };
+  return <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{shapes[name]}</svg>;
 }

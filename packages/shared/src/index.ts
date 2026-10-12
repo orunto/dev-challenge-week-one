@@ -16,11 +16,14 @@ export const chatMessageSchema = z
 
 export const chatRequestSchema = z
   .object({
-    messages: z.array(chatMessageSchema).min(1).max(12),
+    messages: z.array(chatMessageSchema).max(12),
+    opening: z.boolean().optional(),
   })
   .strict()
-  .refine((value) => value.messages.at(-1)?.role === 'user', {
-    message: 'The final message must be from the user.',
+  .refine((value) => value.opening === true
+    ? value.messages.length === 0
+    : value.messages.length > 0 && value.messages.at(-1)?.role === 'user', {
+    message: 'An opening request must be empty; other requests must end with a user message.',
   });
 
 export const profileSchema = z

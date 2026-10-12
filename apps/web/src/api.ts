@@ -25,31 +25,31 @@ export class ApiError extends Error {
 export function errorCopy(error: unknown): string {
   const code = error instanceof ApiError ? error.code : 'NETWORK_ERROR';
   const messages: Record<string, string> = {
-    QUEUE_FULL: 'Gemma is helping other people. Wait a little, then retry.',
-    QUEUE_TIMEOUT: 'The queue took too long. Your work is still here; try again shortly.',
+    QUEUE_FULL: 'Gemma is busy. Try again shortly.',
+    QUEUE_TIMEOUT: 'The queue timed out. Try again.',
     RATE_LIMITED:
-      'This connection has reached its request limit. Try again later or edit your preferences yourself.',
+      'Request limit reached. Try again later.',
     INFERENCE_TIMEOUT:
-      'Gemma took too long to reply. Retry, or continue to your preferences.',
+      'Gemma took too long. Try again.',
     INVALID_MODEL_OUTPUT:
-      'Gemma could not finish a valid response. Retry, or enter your preferences yourself.',
+      'Gemma couldn’t finish this reply. Try again.',
     OUTPUT_LIMIT:
-      'Gemma reached its reply limit. Retry with a shorter request or continue to preferences.',
+      'Reply limit reached. Try a shorter message.',
     INSUFFICIENT_OPTIONS:
-      'Fewer than three eligible hobbies remain. Broaden your setting or remove some exclusions.',
+      'Too few hobbies match. Adjust your preferences.',
     INPUT_LIMIT:
-      'This message is too long for the current model. Shorten it and try again.',
+      'Message too long. Shorten it and try again.',
     CONTEXT_LIMIT:
-      'This conversation needs a shorter context. Continue by entering your preferences yourself.',
+      'Chat is too long. Review your preferences.',
     INVALID_REQUEST: 'Check your message or preferences and try again.',
     MODEL_MISSING:
-      'Gemma is still being set up. Try again later or enter your preferences yourself.',
+      'Gemma is still being set up. Try again shortly.',
     MODEL_MISMATCH:
-      'The hosted model is not ready. Try again later or enter your preferences yourself.',
+      'Gemma isn’t ready. Try again later.',
     INFERENCE_UNAVAILABLE:
-      'Gemma is unavailable right now. Retry, or enter your preferences yourself.',
+      'Gemma is unavailable. Try again shortly.',
     NETWORK_ERROR:
-      'We could not reach Gemma. Check your connection and retry; your work stays here.',
+      'Can’t reach Gemma. Check your connection and retry.',
   };
   return messages[code] ?? messages.NETWORK_ERROR!;
 }
@@ -94,8 +94,9 @@ export async function streamChat(
   signal: AbortSignal,
   onStarted: () => void,
   onToken: (content: string) => void,
+  opening = false,
 ): Promise<void> {
-  const response = await post('/api/chat', { messages }, signal);
+  const response = await post('/api/chat', opening ? { messages: [], opening: true } : { messages }, signal);
   if (
     !response.body ||
     !response.headers.get('content-type')?.includes('application/x-ndjson')

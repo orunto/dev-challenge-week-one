@@ -45,7 +45,7 @@ export function ActivityForm({
       date > localDay()
     ) {
       setError(
-        'Choose an attempt date during this cycle and not in the future, and rate enjoyment and difficulty.',
+        'Check the date and both ratings.',
       );
       return;
     }
@@ -58,7 +58,7 @@ export function ActivityForm({
       setReflection('');
     } catch {
       setError(
-        'Your attempt was not saved. Try again; retrying this submission will not duplicate it.',
+        'Couldn’t save this attempt. Try again.',
       );
     } finally {
       saving.current = false;
@@ -75,16 +75,12 @@ export function ActivityForm({
       }}
     >
       <h4>How did it go?</h4>
-      <p className="field__hint">
-        A completed starter earns 10 points once per hobby per cycle. Further attempts
-        still count as exploration.
-      </p>
       {error && (
         <p role="alert" className="error-banner">
-          Error: {error}
+          {error}
         </p>
       )}
-      <Field id={`${prefix}-date`} label="Attempt date">
+      <Field id={`${prefix}-date`} label="Date">
         <input
           id={`${prefix}-date`}
           type="date"
@@ -95,6 +91,7 @@ export function ActivityForm({
           onChange={(event) => setDate(event.target.value)}
         />
       </Field>
+      <div className="field-grid">
       <Field id={`${prefix}-enjoyment`} label="Enjoyment">
         <select
           id={`${prefix}-enjoyment`}
@@ -127,14 +124,14 @@ export function ActivityForm({
           ))}
         </select>
       </Field>
+      </div>
       <Field
         id={`${prefix}-reflection`}
-        label="Anything to remember?"
-        hint="Optional, up to 500 characters."
+        label="Note (optional)"
       >
         <textarea
           id={`${prefix}-reflection`}
-          rows={3}
+          rows={2}
           maxLength={500}
           value={reflection}
           disabled={busy}
@@ -148,10 +145,10 @@ export function ActivityForm({
           disabled={busy}
           onChange={(event) => setCompleted(event.target.checked)}
         />
-        <span>I completed the starter activity.</span>
+        <span>Starter completed</span>
       </label>
       <Button type="submit" disabled={busy}>
-        {busy ? 'Saving attempt…' : 'Save my attempt'}
+        {busy ? 'Saving…' : 'Save attempt'}
       </Button>
     </form>
   );

@@ -8,13 +8,13 @@ Phase-one performance/quality and deployment gates remain open. Phase two does n
 
 ## Implemented flow
 
-1. **Welcome:** approved teal/cream/coral visual direction, geometric artwork, hosted-processing explanation, and an option to enter preferences without a conversation.
-2. **Conversation:** one optional question at a time, streamed plain-text replies, waiting/generating states, cancellation, retry, question skipping, and a manual-review route when inference is unavailable.
+1. **Welcome:** one heading, one short subtitle, one chat CTA. The info icon holds hosted-processing details and the manual-preference/data-management links.
+2. **Conversation:** full-height mobile chat with a bottom composer. Gemma generates the opening question, then asks one optional question at a time. Streamed plain-text replies, concise thinking/error states, cancellation, retry/resume, and contextual utility actions replace introductory panels and cards.
 3. **Profile extraction:** separate `/api/preferences` operation; only user-authored messages enter its server-owned prompt. Unstated scalar choices remain null instead of silently adopting model guesses.
 4. **Review:** editable interest/constraint lines, time, budget, setting, social preference, optional known-hobby exclusions, and 7/14-day selection. Validate before confirming; preserve at least three eligible catalog options.
 5. **Confirmation:** save the profile on this browser, optionally discard raw conversation/unsent answer, and resume here after reloading. No recommendation cycle starts during onboarding.
 
-The confirmed screen explicitly identifies hobby experiments as phase three. It does not simulate recommendations or expose a nonfunctional generation button.
+Confirmed profiles open the compact hobby utility. There is no separate congratulatory page or permanent profile-summary panel; recommendations still come from the model, and saved cycles/records remain available.
 
 ## Code map
 
@@ -45,7 +45,7 @@ The confirmed screen explicitly identifies hobby experiments as phase three. It 
 
 ## Build and fonts
 
-The frontend uses npm-packaged self-hosted Barlow Semi Condensed 700/800, Inter Variable, and Martian Mono Variable fonts. No Google Fonts request is required in the browser. Martian Mono variable weights support the approved 650 label weight; system fallbacks remain available.
+The frontend uses self-hosted Barlow Semi Condensed 700/800 and Inter Variable. No Google Fonts request is required. The unused mono stylesheet is no longer loaded in the minimal interface; system fallbacks remain available.
 
 The Vite development server proxies `/api` to `http://127.0.0.1:3000` by default. `API_PROXY_URL` can override that target. Production builds emit `apps/web/dist`; Fastify serves those assets from the same origin, without spending generation-rate allowances on fonts or scripts. Unknown API routes do not become HTML application responses.
 

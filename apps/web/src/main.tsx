@@ -3,7 +3,6 @@ import { createRoot } from 'react-dom/client';
 import '@fontsource/barlow-semi-condensed/700.css';
 import '@fontsource/barlow-semi-condensed/800.css';
 import '@fontsource-variable/inter';
-import '@fontsource-variable/martian-mono';
 import { App } from './App.js';
 import './styles.css';
 
