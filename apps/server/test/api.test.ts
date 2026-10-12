@@ -44,7 +44,9 @@ test('Gemma opens the chat from a server-owned prompt, without caller-supplied o
   });
   t.after(() => app.close());
   const opening = await app.inject({
-    method: 'POST', url: '/api/chat', payload: { messages: [], opening: true },
+    method: 'POST',
+    url: '/api/chat',
+    payload: { messages: [], opening: true },
   });
   assert.equal(opening.statusCode, 200);
   assert.ok(opening.body.includes('What do you enjoy doing?'));
@@ -52,11 +54,19 @@ test('Gemma opens the chat from a server-owned prompt, without caller-supplied o
   assert.equal(received[0]?.[0]?.role, 'system');
   assert.equal(received[0]?.[1]?.role, 'user');
   const supplied = await app.inject({
-    method: 'POST', url: '/api/chat',
-    payload: { opening: true, messages: [{ role: 'user', content: 'CALLER_OPENING_INSTRUCTIONS' }] },
+    method: 'POST',
+    url: '/api/chat',
+    payload: {
+      opening: true,
+      messages: [{ role: 'user', content: 'CALLER_OPENING_INSTRUCTIONS' }],
+    },
   });
   assert.equal(supplied.statusCode, 400);
-  assert.equal((await app.inject({ method: 'POST', url: '/api/chat', payload: { messages: [] } })).statusCode, 400);
+  assert.equal(
+    (await app.inject({ method: 'POST', url: '/api/chat', payload: { messages: [] } }))
+      .statusCode,
+    400,
+  );
   assert.equal(received.length, 1);
 });
 
@@ -77,6 +87,25 @@ function fakeClient(generate?: InferenceClient['generate']): InferenceClient {
       }),
   };
 }
+
+test('numbered onboarding emits one question and rejects requests beyond question five', async (t) => {
+  let calls = 0;
+  const app = await buildApp(config, {
+    client: fakeClient(async (_messages, _signal, onToken) => {
+      calls++;
+      await onToken?.('How much time can you spend? And what is your budget?');
+      return { content: 'How much time can you spend? And what is your budget?', metrics };
+    }),
+  });
+  t.after(() => app.close());
+  const payload = { messages: [{ role: 'user', content: 'Drawing' }], questionIndex: 1 };
+  const response = await app.inject({ method: 'POST', url: '/api/chat', payload });
+  const content = response.body.trim().split('\n').map((line) => JSON.parse(line)).filter((event) => event.type === 'token').map((event) => event.content).join('');
+  assert.equal(content, 'How much time can you spend?');
+  const sixth = await app.inject({ method: 'POST', url: '/api/chat', payload: { ...payload, questionIndex: 5 } });
+  assert.equal(sixth.statusCode, 400);
+  assert.equal(calls, 1);
+});
 
 test('chat streams typed events and never accepts caller-supplied system instructions', async (t) => {
   const app = await buildApp(config, { client: fakeClient() });

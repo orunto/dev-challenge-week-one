@@ -54,14 +54,54 @@ export function BrandMark() {
   );
 }
 
-export function Icon({ name }: { name: 'info' | 'back' | 'send' | 'stop' | 'close' | 'book' }) {
+export function TypingBubble({ label = 'Gemma is replying' }: { label?: string }) {
+  return (
+    <div className="typing-bubble" role="status" aria-label={label}>
+      <span className="sr-only">{label}</span>
+      <span className="typing-dots" aria-hidden="true"><span /><span /><span /></span>
+    </div>
+  );
+}
+
+export function Icon({
+  name,
+}: {
+  name: 'info' | 'back' | 'send' | 'stop' | 'close' | 'book';
+}) {
   const shapes = {
-    info: <><circle cx="12" cy="12" r="9" /><path d="M12 11v6M12 7v1" /></>,
+    info: (
+      <>
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 11v6M12 7v1" />
+      </>
+    ),
     back: <path d="m14 5-7 7 7 7M7 12h13" />,
-    send: <><path d="m4 4 17 8-17 8 3-8-3-8ZM7 12h14" /></>,
+    send: (
+      <>
+        <path d="m4 4 17 8-17 8 3-8-3-8ZM7 12h14" />
+      </>
+    ),
     stop: <rect x="6" y="6" width="12" height="12" rx="1" />,
     close: <path d="m6 6 12 12M18 6 6 18" />,
-    book: <><path d="M4 4h7a3 3 0 0 1 3 3v14a4 4 0 0 0-3-1H4V4ZM14 7h6v13h-6" /><path d="M7 8h3M7 12h3" /></>,
+    book: (
+      <>
+        <path d="M4 4h7a3 3 0 0 1 3 3v14a4 4 0 0 0-3-1H4V4ZM14 7h6v13h-6" />
+        <path d="M7 8h3M7 12h3" />
+      </>
+    ),
   };
-  return <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{shapes[name]}</svg>;
+  return (
+    <svg
+      className="icon"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {shapes[name]}
+    </svg>
+  );
 }

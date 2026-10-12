@@ -9,10 +9,10 @@ Phase-one performance/quality and deployment gates remain open. Phase two does n
 ## Implemented flow
 
 1. **Welcome:** one heading, one short subtitle, one chat CTA. The info icon holds hosted-processing details and the manual-preference/data-management links.
-2. **Conversation:** full-height mobile chat with a bottom composer. Gemma generates the opening question, then asks one optional question at a time. Streamed plain-text replies, concise thinking/error states, cancellation, retry/resume, and contextual utility actions replace introductory panels and cards.
+2. **Conversation:** full-height mobile chat with a bottom composer. Gemma generates five questions in a fixed topic order. Skips count as answers; retries never advance the count. Animated dots show waiting/preparation, with static dots for reduced motion and a screen-reader status.
 3. **Profile extraction:** separate `/api/preferences` operation; only user-authored messages enter its server-owned prompt. Unstated scalar choices remain null instead of silently adopting model guesses.
-4. **Review:** editable interest/constraint lines, time, budget, setting, social preference, optional known-hobby exclusions, and 7/14-day selection. Validate before confirming; preserve at least three eligible catalog options.
-5. **Confirmation:** save the profile on this browser, optionally discard raw conversation/unsent answer, and resume here after reloading. No recommendation cycle starts during onboarding.
+4. **Automatic recommendations:** answer five immediately triggers extraction and recommendation generation. Unknown/skipped choices use 15 minutes, free, either setting/company. No sixth question or manual confirmation is needed. The validated profile and cycle save atomically; failure preserves answers and existing history for retry.
+5. **Editing and records:** preferences/cycle length can be edited from the info menu. Question progress/completion survive reloads. Raw-conversation removal also clears stored question answers, and does not start a fresh background conversation.
 
 Confirmed profiles open the compact hobby utility. There is no separate congratulatory page or permanent profile-summary panel; recommendations still come from the model, and saved cycles/records remain available.
 

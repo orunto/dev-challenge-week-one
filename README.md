@@ -10,7 +10,7 @@ Phase two adds a React/Vite welcome, conversation, editable preference review, a
 
 Phases three through five add grounded experiment cards, saved cycles, activity/reflection logging, derived points, feedback-informed refreshes with an optional retained favorite, history, privacy controls, validated JSON export/import, and offline app-shell/PWA source. These additions are also unverified. The full roadmap is in [`plan.md`](plan.md), and the approved UI specification is in [`design.md`](design.md).
 
-The interface is now chat-first and mobile-first: a heading/subtitle/CTA opens a real Gemma-generated opening turn. Privacy and service details are behind the info icon. Recommendations, preference edits, and activity history are compact secondary utilities. This UI revision still needs user-run build/browser verification.
+The interface is chat-first and mobile-first: Gemma asks five questions (interests, time, budget, setting, company). Answers and skips advance once; after answer five, preferences are extracted and three hobbies are generated automatically, without a review/generate click. Waiting uses an animated three-dot chat bubble with a reduced-motion fallback. Preference edits, privacy, and records remain secondary utilities. This revision still needs user-run verification.
 
 **Real Gemma CPU baseline benchmarks are recorded, but phase-one verification is still open.** Sequential requests completed 10/10; the three-client run completed 3/10 and timed out seven queued requests. Baseline review identified constraint violations, prompting eligibility filtering and model-digest enforcement. The post-change rerun was interrupted, so final checks and updated quality review are pending. Docker/Render performance and total container peak memory remain unverified. See [`docs/phase-one-results.md`](docs/phase-one-results.md) and [`docs/phase-one.md`](docs/phase-one.md).
 
@@ -126,7 +126,9 @@ Chat request:
 
 Chat events are `started`, `token`, and then `done` **or** `error`. HTTP 200 alone does not mean a streamed generation succeeded. Do not save partial responses as complete replies after a terminal error. Model roles/instructions are controlled by the server; clients may submit only user/assistant messages.
 
-The opening turn uses `{ "messages": [], "opening": true }`. Only an empty opening request is accepted; the server supplies the instruction that asks Gemma to greet and ask one question. No synthetic user message is saved or displayed in the browser. Normal chat requests must still end with a user message.
+The opening turn uses `{ "messages": [], "opening": true, "questionIndex": 0 }`. Only an empty opening request is accepted; the server supplies the instruction. Subsequent onboarding questions use indices 1–4, and their output ends at the first question mark. Index 5 is rejected. No synthetic user message is saved/displayed. After the fifth answer the browser calls preference extraction and recommendations, rather than asking another question. Legacy unnumbered API requests remain supported for the benchmark.
+
+All five topic-labeled answers are sent for extraction. Per-answer UTF-8/JSON limits keep them within the configured input budget instead of dropping earlier preferences. Unspecified/skipped scalar fields use documented defaults: 15 minutes, free, either setting, and either company preference. The successful profile and first cycle are committed in one IndexedDB transaction; failures/cancellation retain answers for retry. Defaults remain editable from the info menu.
 
 Preference extraction uses the same `{ "messages": [...] }` request shape, but permits the last message to be from the assistant. Only user messages enter the extraction prompt. The result is `{ "profile": {...}, "metrics": {...} }`; unknown scalar preferences are `null`, and unknown lists are empty. Shape and known hobby exclusions are enforced; the person must review factual accuracy before confirmation.
 

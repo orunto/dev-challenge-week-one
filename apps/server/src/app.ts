@@ -19,6 +19,7 @@ import { OllamaClient, type InferenceClient, type ModelMessage } from './ollama.
 import {
   onboardingPrompt,
   openingPrompt,
+  questionPrompt,
   parsePreferences,
   preferenceFormat,
   preferenceMessages,
@@ -201,7 +202,7 @@ export async function buildApp(
   app.post('/api/chat', async (request, reply) => {
     const body = chatRequestSchema.parse(request.body);
     const messages: ModelMessage[] = [
-      { role: 'system', content: onboardingPrompt },
+      { role: 'system', content: body.questionIndex === undefined ? onboardingPrompt : `${onboardingPrompt}\n${questionPrompt(body.questionIndex)}` },
       ...(body.opening
         ? [{ role: 'user' as const, content: openingPrompt }]
         : body.messages),
@@ -228,9 +229,25 @@ export async function buildApp(
         'X-Accel-Buffering': 'no',
       });
       await send({ type: 'started', queueMs: held.queueMs });
-      const result = await client.generate(messages, held.signal, (content) =>
-        send({ type: 'token', content }),
-      );
+      let questionEnded = false;
+      const result = await client.generate(messages, held.signal, async (content) => {
+        if (body.questionIndex === undefined) {
+          await send({ type: 'token', content });
+          return;
+        }
+        if (questionEnded) {
+          return;
+        }
+        const end = content.search(/[?？]/u);
+        const visible = end === -1 ? content : content.slice(0, end + 1);
+        questionEnded = end !== -1;
+        if (visible) {
+          await send({ type: 'token', content: visible });
+        }
+      });
+      if (body.questionIndex !== undefined && !questionEnded) {
+        throw new AppError(502, 'INVALID_MODEL_OUTPUT', 'Gemma could not finish the question. Please retry.');
+      }
       await send({ type: 'done', metrics: { queueMs: held.queueMs, ...result.metrics } });
       log({
         event: 'chat_completed',

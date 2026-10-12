@@ -7,6 +7,10 @@ export const evaluatedModel = {
   ollamaVersion: '0.40.2',
 } as const;
 
+export const onboardingTopics = ['interests', 'time', 'budget', 'setting', 'company'] as const;
+export const onboardingQuestionCount = onboardingTopics.length;
+export const onboardingAnswersSchema = z.array(z.string().trim().min(1).max(2000)).max(onboardingQuestionCount);
+
 export const chatMessageSchema = z
   .object({
     role: z.enum(['user', 'assistant']),
@@ -18,13 +22,23 @@ export const chatRequestSchema = z
   .object({
     messages: z.array(chatMessageSchema).max(12),
     opening: z.boolean().optional(),
+    questionIndex: z.number().int().min(0).max(onboardingQuestionCount - 1).optional(),
   })
   .strict()
-  .refine((value) => value.opening === true
-    ? value.messages.length === 0
-    : value.messages.length > 0 && value.messages.at(-1)?.role === 'user', {
-    message: 'An opening request must be empty; other requests must end with a user message.',
-  });
+  .refine((value) => value.questionIndex === undefined ||
+    (value.opening === true ? value.questionIndex === 0 : value.questionIndex > 0), {
+    message: 'The opening is question one; subsequent questions must advance.',
+  })
+  .refine(
+    (value) =>
+      value.opening === true
+        ? value.messages.length === 0
+        : value.messages.length > 0 && value.messages.at(-1)?.role === 'user',
+    {
+      message:
+        'An opening request must be empty; other requests must end with a user message.',
+    },
+  );
 
 export const profileSchema = z
   .object({
@@ -40,7 +54,7 @@ export const profileSchema = z
 
 export const recommendationRequestSchema = z.object({ profile: profileSchema }).strict();
 
-// Unstated facts stay null until the person explicitly chooses them in review.
+// Unstated facts stay null in the model draft; documented defaults are applied separately.
 export const preferenceDraftSchema = z
   .object({
     interests: z.array(z.string().trim().min(1).max(100)).max(8),

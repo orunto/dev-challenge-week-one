@@ -21,14 +21,18 @@ export function Experiments({
   days,
   sessionOnly,
   onBusy,
+  initialLibrary,
+  onLibraryChange,
 }: {
   profile: Profile;
   days: CycleDays;
   sessionOnly: boolean;
   onBusy: (busy: boolean) => void;
+  initialLibrary?: Library | null;
+  onLibraryChange?: (library: Library) => void;
 }) {
-  const [library, setLibrary] = useState<Library>(emptyLibrary);
-  const [loaded, setLoaded] = useState(false);
+  const [library, setLibrary] = useState<Library>(() => initialLibrary ?? emptyLibrary());
+  const [loaded, setLoaded] = useState(Boolean(initialLibrary || sessionOnly));
   const [busy, setBusy] = useState(false);
   const [saving, setSaving] = useState(false);
   const [logging, setLogging] = useState(false);
@@ -38,13 +42,17 @@ export function Experiments({
   const [retained, setRetained] = useState('');
   const [now, setNow] = useState(Date.now);
   const controller = useRef<AbortController | null>(null);
+  useEffect(() => () => controller.current?.abort(), []);
   useEffect(() => {
     onBusy(busy || logging);
     return () => onBusy(false);
   }, [busy, logging, onBusy]);
   useEffect(() => {
     let alive = true;
-    if (sessionOnly) {
+    if (initialLibrary && sessionOnly) {
+      setLibrary(initialLibrary);
+      setLoaded(true);
+    } else if (sessionOnly) {
       setLoaded(true);
     } else {
       loadLibrary()
@@ -64,9 +72,8 @@ export function Experiments({
     }
     return () => {
       alive = false;
-      controller.current?.abort();
     };
-  }, [sessionOnly]);
+  }, [sessionOnly, initialLibrary]);
 
   useEffect(() => {
     const refreshClock = () => setNow(Date.now());
@@ -150,13 +157,10 @@ export function Experiments({
           }
         : await saveNewCycle(nextCycle, library.currentCycleId);
       setLibrary(next);
+      onLibraryChange?.(next);
       setRetained('');
       setSelected(null);
-      setNotice(
-        sessionOnly
-          ? 'Ready for this session.'
-          : 'Hobbies saved.',
-      );
+      setNotice(sessionOnly ? 'Ready for this session.' : 'Hobbies saved.');
     } catch (cause) {
       setError(
         committing
@@ -178,6 +182,7 @@ export function Experiments({
       const before = points(library.logs);
       const next = sessionOnly ? appendActivity(library, log) : await saveActivity(log);
       setLibrary(next);
+      onLibraryChange?.(next);
       const earned = points(next.logs) - before;
       setNotice(
         `${sessionOnly ? 'Recorded for this session.' : 'Attempt saved.'} ${earned > 0 ? `+${earned} points.` : ''}`,
@@ -190,16 +195,18 @@ export function Experiments({
     <section className="experiments" aria-labelledby="experiments-heading">
       <div className="experiments-heading">
         <div>
-          <h1 id="experiments-heading" data-view-heading tabIndex={-1}>Your hobbies</h1>
+          <h1 id="experiments-heading" data-view-heading tabIndex={-1}>
+            Your hobbies
+          </h1>
           <p>
             {cycle
-               ? `Refresh ${new Date(cycle.dueAt).toLocaleDateString()}`
-               : 'Three things to try.'}
+              ? `Refresh ${new Date(cycle.dueAt).toLocaleDateString()}`
+              : 'Three things to try.'}
           </p>
         </div>
         {!cycle && (
           <Button disabled={busy || !loaded} onClick={() => void generate()}>
-             Find hobbies
+            Find hobbies
           </Button>
         )}
         {cycle && (
@@ -213,7 +220,7 @@ export function Experiments({
             disabled={saving}
             onClick={() => controller.current?.abort()}
           >
-             {saving ? 'Saving…' : 'Stop'}
+            {saving ? 'Saving…' : 'Stop'}
           </Button>
         )}
       </div>
@@ -254,9 +261,9 @@ export function Experiments({
               <article className="experiment" key={item.hobbyId}>
                 <header>
                   <h3>{hobby.name}</h3>
-                <span className="experiment-meta">
-                  {minutes} min · {hobby.cost === 'free' ? 'Free' : 'Low cost'}
-                </span>
+                  <span className="experiment-meta">
+                    {minutes} min · {hobby.cost === 'free' ? 'Free' : 'Low cost'}
+                  </span>
                 </header>
                 <p>{item.reason}</p>
                 <Button
@@ -269,15 +276,16 @@ export function Experiments({
                 {selected === hobby.id && (
                   <div className="activity-detail">
                     <p>{item.firstActivity}</p>
-                    <details><summary>Supplies & adaptations</summary>
-                    <p>{item.adaptation}</p>
-                    <p>{hobby.accessibleActivity}</p>
-                    <ul>
-                      {hobby.equipment.map((equipment) => (
-                        <li key={equipment}>{equipment}</li>
-                      ))}
-                    </ul>
-                    <p className="field__hint">{hobby.estimatedCost}</p>
+                    <details>
+                      <summary>Supplies & adaptations</summary>
+                      <p>{item.adaptation}</p>
+                      <p>{hobby.accessibleActivity}</p>
+                      <ul>
+                        {hobby.equipment.map((equipment) => (
+                          <li key={equipment}>{equipment}</li>
+                        ))}
+                      </ul>
+                      <p className="field__hint">{hobby.estimatedCost}</p>
                     </details>
                     <ActivityForm
                       key={`${cycle.id}/${hobby.id}`}

@@ -27,29 +27,18 @@ export function errorCopy(error: unknown): string {
   const messages: Record<string, string> = {
     QUEUE_FULL: 'Gemma is busy. Try again shortly.',
     QUEUE_TIMEOUT: 'The queue timed out. Try again.',
-    RATE_LIMITED:
-      'Request limit reached. Try again later.',
-    INFERENCE_TIMEOUT:
-      'Gemma took too long. Try again.',
-    INVALID_MODEL_OUTPUT:
-      'Gemma couldn’t finish this reply. Try again.',
-    OUTPUT_LIMIT:
-      'Reply limit reached. Try a shorter message.',
-    INSUFFICIENT_OPTIONS:
-      'Too few hobbies match. Adjust your preferences.',
-    INPUT_LIMIT:
-      'Message too long. Shorten it and try again.',
-    CONTEXT_LIMIT:
-      'Chat is too long. Review your preferences.',
+    RATE_LIMITED: 'Request limit reached. Try again later.',
+    INFERENCE_TIMEOUT: 'Gemma took too long. Try again.',
+    INVALID_MODEL_OUTPUT: 'Gemma couldn’t finish this reply. Try again.',
+    OUTPUT_LIMIT: 'Reply limit reached. Try a shorter message.',
+    INSUFFICIENT_OPTIONS: 'Too few hobbies match. Adjust your preferences.',
+    INPUT_LIMIT: 'Message too long. Shorten it and try again.',
+    CONTEXT_LIMIT: 'Chat is too long. Review your preferences.',
     INVALID_REQUEST: 'Check your message or preferences and try again.',
-    MODEL_MISSING:
-      'Gemma is still being set up. Try again shortly.',
-    MODEL_MISMATCH:
-      'Gemma isn’t ready. Try again later.',
-    INFERENCE_UNAVAILABLE:
-      'Gemma is unavailable. Try again shortly.',
-    NETWORK_ERROR:
-      'Can’t reach Gemma. Check your connection and retry.',
+    MODEL_MISSING: 'Gemma is still being set up. Try again shortly.',
+    MODEL_MISMATCH: 'Gemma isn’t ready. Try again later.',
+    INFERENCE_UNAVAILABLE: 'Gemma is unavailable. Try again shortly.',
+    NETWORK_ERROR: 'Can’t reach Gemma. Check your connection and retry.',
   };
   return messages[code] ?? messages.NETWORK_ERROR!;
 }
@@ -95,8 +84,13 @@ export async function streamChat(
   onStarted: () => void,
   onToken: (content: string) => void,
   opening = false,
+  questionIndex?: number,
 ): Promise<void> {
-  const response = await post('/api/chat', opening ? { messages: [], opening: true } : { messages }, signal);
+  const response = await post(
+    '/api/chat',
+    opening ? { messages: [], opening: true, questionIndex } : { messages, questionIndex },
+    signal,
+  );
   if (
     !response.body ||
     !response.headers.get('content-type')?.includes('application/x-ndjson')

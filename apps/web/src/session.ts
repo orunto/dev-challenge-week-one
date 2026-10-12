@@ -4,6 +4,7 @@ import {
   cycleDaysSchema,
   preferenceDraftSchema,
   profileSchema,
+  onboardingAnswersSchema,
 } from '@hobbymaxx/shared';
 
 export const storedMessageSchema = chatMessageSchema.extend({
@@ -34,6 +35,8 @@ export const sessionSchema = z
     cycleDays: cycleDaysSchema,
     discardConversation: z.boolean(),
     confirmedProfile: profileSchema.nullable(),
+    questionAnswers: onboardingAnswersSchema.optional(),
+    onboardingFinished: z.boolean().optional(),
   })
   .strict()
   .refine((value) => value.screen !== 'confirmed' || value.confirmedProfile !== null);
@@ -69,6 +72,8 @@ export function newSession(): Session {
     },
     discardConversation: false,
     confirmedProfile: null,
+    questionAnswers: [],
+    onboardingFinished: false,
   };
 }
 

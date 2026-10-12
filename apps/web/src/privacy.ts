@@ -145,9 +145,12 @@ export async function deleteRawConversation(): Promise<Session | null> {
               ? current + 1
               : Date.now();
           if (request.result !== undefined) {
+            const currentSession = sessionSchema.parse(request.result);
             next = {
-              ...sessionSchema.parse(request.result),
+              ...currentSession,
               messages: [],
+              questionAnswers: [],
+              screen: currentSession.confirmedProfile ? 'confirmed' : 'welcome',
               composer: '',
               discardConversation: true,
             };
