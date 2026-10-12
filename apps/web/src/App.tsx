@@ -5,6 +5,7 @@ import { BrandMark, Button, Field, Icon, TypingBubble } from './components.js';
 import type { ReviewForm } from './session.js';
 import { useOnboarding } from './useOnboarding.js';
 import { PrivacyPanel } from './PrivacyPanel.js';
+import { RecommendationCarousel } from './RecommendationCarousel.js';
 
 type Onboarding = ReturnType<typeof useOnboarding>;
 
@@ -235,10 +236,14 @@ function Conversation({ onboarding }: { onboarding: Onboarding }) {
         }}
       >
         <div className="chat-thread">
-        {session.messages.map((item) => (
-          <article className={`message message--${item.role}`} key={item.id}>
+        {session.messages.map((item) => {
+          const cycle = item.carousel ? onboarding.generatedLibrary?.cycles.find((entry) => entry.id === item.carousel?.cycleId) : undefined;
+          const ratedIds = new Set(onboarding.generatedLibrary?.logs.filter((entry) => entry.cycleId === cycle?.id).map((entry) => entry.hobbyId) ?? []);
+          return (
+          <article className={`message message--${item.role}${item.carousel ? ' message--carousel' : ''}`} key={item.id}>
             <span className="sr-only">{item.role === 'user' ? 'You' : item.source === 'utility' ? 'HobbyMaxx' : 'Gemma'}:</span>
             <p>{item.content}</p>
+            {cycle && item.carousel && <RecommendationCarousel cycle={cycle} hobbyIds={item.carousel.hobbyIds} ratedIds={ratedIds} disabled={busy || Boolean(reflection)} onRate={onboarding.beginReflection} onDetails={onboarding.showHobbyDetails} />}
             {item.recommendation && onboarding.generatedLibrary?.cycles.some((cycle) => cycle.id === item.recommendation?.cycleId && cycle.recommendations.some((hobby) => hobby.hobbyId === item.recommendation?.hobbyId)) && (
               <div className="recommendation-actions"><button className="text-action" disabled={busy || Boolean(reflection)} onClick={() => onboarding.beginReflection(item.recommendation!.cycleId, item.recommendation!.hobbyId)}>Rate activity</button><button className="text-action" disabled={busy || Boolean(reflection)} onClick={() => onboarding.showHobbyDetails(item.recommendation!.cycleId, item.recommendation!.hobbyId)}>Supplies & alternatives</button></div>
             )}
@@ -246,7 +251,8 @@ function Conversation({ onboarding }: { onboarding: Onboarding }) {
               <span className="message-note">Stopped</span>
             )}
           </article>
-        ))}
+        );
+        })}
         {onboarding.partial && (
           <article className="message message--assistant">
             <span className="sr-only">Gemma:</span>

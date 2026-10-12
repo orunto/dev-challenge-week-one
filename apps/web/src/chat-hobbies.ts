@@ -4,14 +4,43 @@ import type { Library } from './library.js';
 import { points } from './library.js';
 import { message, type StoredMessage } from './session.js';
 
-export function recommendationMessages(cycle: Cycle): StoredMessage[] {
-  return cycle.recommendations.map((item) => {
-    const hobby = hobbies.find((entry) => entry.id === item.hobbyId);
-    return {
-      ...message('assistant', `${hobby?.name ?? item.hobbyId} · up to ${Math.min(hobby?.minutes ?? cycle.profile.minutesPerSession, cycle.profile.minutesPerSession)} min · ${hobby?.cost === 'free' ? 'Free' : 'Low cost'}\n\n${item.reason}\n\nTry this: ${item.firstActivity}\n\n${item.adaptation}`),
-      source: 'gemma' as const,
-      recommendation: { cycleId: cycle.id, hobbyId: item.hobbyId },
-    };
+export function recommendationMessages(cycle: Cycle, ids = cycle.recommendations.map((item) => item.hobbyId), source: 'gemma' | 'utility' = 'gemma'): StoredMessage[] {
+  const selected = cycle.recommendations.filter((item) => ids.includes(item.hobbyId));
+  if (!selected.length) {
+    return [];
+  }
+  return [{
+    ...message('assistant', source === 'utility' ? 'Here are the other hobbies to try.' : 'Here are your hobby recommendations.'),
+    source,
+    carousel: { cycleId: cycle.id, hobbyIds: selected.map((item) => item.hobbyId) },
+  }];
+}
+
+export function remainingRecommendations(cycle: Cycle, library: Library): StoredMessage[] {
+  const rated = new Set(library.logs.filter((log) => log.cycleId === cycle.id).map((log) => log.hobbyId));
+  return recommendationMessages(cycle, cycle.recommendations.filter((item) => !rated.has(item.hobbyId)).map((item) => item.hobbyId), 'utility');
+}
+
+export function groupLegacyRecommendations(messages: StoredMessage[], library: Library): StoredMessage[] {
+  if (!messages.some((item) => item.recommendation)) {
+    return messages;
+  }
+  const grouped = new Set<string>();
+  return messages.flatMap((item) => {
+    if (!item.recommendation) {
+      return [item];
+    }
+    const cycle = library.cycles.find((entry) => entry.id === item.recommendation?.cycleId);
+    if (!cycle) {
+      return [item];
+    }
+    if (grouped.has(cycle.id)) {
+      return [];
+    }
+    grouped.add(cycle.id);
+    const ids = messages.filter((entry) => entry.recommendation?.cycleId === cycle.id).map((entry) => entry.recommendation!.hobbyId);
+    const carousel = recommendationMessages(cycle, ids, item.source ?? 'gemma')[0];
+    return carousel ? [{ ...carousel, id: item.id }] : [item];
   });
 }
 

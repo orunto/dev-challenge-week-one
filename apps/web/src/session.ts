@@ -13,6 +13,8 @@ export const storedMessageSchema = chatMessageSchema.extend({
   status: z.enum(['complete', 'interrupted']),
   source: z.enum(['gemma', 'utility']).optional(),
   recommendation: z.object({ cycleId: z.string().uuid(), hobbyId: z.string().min(1).max(64) }).strict().optional(),
+  carousel: z.object({ cycleId: z.string().uuid(), hobbyIds: z.array(z.string().min(1).max(64)).min(1).max(3) }).strict()
+    .refine((value) => new Set(value.hobbyIds).size === value.hobbyIds.length).optional(),
 });
 
 export const reviewFormSchema = z.object({

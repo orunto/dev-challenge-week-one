@@ -14,7 +14,7 @@ import {
 import { answerContext, answersFor, onboardingFinished, profileFromAnswers, validateAnswer } from './onboarding.js';
 import { appendActivity, emptyLibrary, isDue, librarySchema, loadLibrary, makeCycle, points, saveOnboardingResult, saveReflectionResult, type Library } from './library.js';
 import { message, newSession, utilityMessage, type ReviewForm, type Session } from './session.js';
-import { addMessages, historyMessage, recommendationMessages } from './chat-hobbies.js';
+import { addMessages, groupLegacyRecommendations, historyMessage, recommendationMessages, remainingRecommendations } from './chat-hobbies.js';
 import { advanceReflection, reflectionChoices, reflectionLog, reflectionPrompt, startReflection, type Reflection } from './reflection.js';
 import {
   loadSession,
@@ -436,9 +436,10 @@ export function useOnboarding(chatVisible = true) {
       const cycle = library.cycles.find((item) => item.id === library.currentCycleId);
       if (cycle) {
         setSession((current) => {
-          const missing = recommendationMessages(cycle).filter((entry) =>
-            !current.messages.some((item) => item.recommendation?.cycleId === cycle.id && item.recommendation.hobbyId === entry.recommendation?.hobbyId));
-          return missing.length ? { ...current, messages: addMessages(current.messages, ...missing) } : current;
+          const grouped = groupLegacyRecommendations(current.messages, library);
+          const missing = !grouped.some((item) => item.carousel?.cycleId === cycle.id);
+          const messages = missing ? addMessages(grouped, ...recommendationMessages(cycle)) : grouped;
+          return messages !== current.messages ? { ...current, messages } : current;
         });
       }
     };
@@ -522,7 +523,11 @@ export function useOnboarding(chatVisible = true) {
       const projected = appendActivity(previous, log);
       const earned = points(projected.logs) - points(previous.logs);
       const receipt = `Saved. Enjoyment ${log.enjoyment}/5, difficulty ${log.difficulty}/5.${earned ? ` +${earned} points.` : ''}${sessionOnly.current ? ' This session only.' : ''}`;
-      const next: Session = { ...current, reflection: null, composer: '', messages: addMessages(current.messages, utilityMessage('assistant', receipt)) };
+      const cycle = projected.cycles.find((item) => item.id === log.cycleId)!;
+      const otherHobbies = remainingRecommendations(cycle, projected);
+      const next: Session = { ...current, reflection: null, composer: '', messages: addMessages(current.messages,
+        utilityMessage('assistant', receipt), ...otherHobbies,
+        ...(otherHobbies.length ? [] : [utilityMessage('assistant', 'You’ve rated all three hobbies. You can try one again, or refresh when this cycle is due.')])) };
       const saved = sessionOnly.current ? projected : await saveReflectionResult(next, log);
       setGeneratedLibrary(saved);
       setSession(next);

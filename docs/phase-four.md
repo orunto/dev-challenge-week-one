@@ -6,6 +6,8 @@ Recommendations, rating prompts, replies, save receipts, history, and refresh/fa
 
 Pending ratings keep a stable submission UUID and resume after reload. The completed activity record and chat receipt commit atomically, with idempotent retries and derived points. Raw-conversation deletion also removes pending rating state; validated records/cycles remain in the library. Model-generated recommendations retain cycle/hobby references in chat and can be restored from saved cycles without regenerating them.
 
+Recommendations are grouped into carousel chat messages with persistent cycle/hobby references. Rating completion commits the record, receipt, and a new carousel of remaining unrated hobbies together. Previously rated hobbies stay accessible in older carousel messages for additional attempts. When all three are rated, the chat confirms completion instead of inserting an empty carousel. Grouping old individual recommendation messages does not require inference or discard rating/history records.
+
 Source is implemented; user-run tests, browser checks, and real-model review remain pending.
 
 Attempts record a stable submission UUID, cycle/hobby/activity references, local attempt date, recorded timestamp/calendar date, completion flag, enjoyment/difficulty from 1–5, and an optional 500-character reflection. The IndexedDB read/modify/write is atomic. Resubmitting the same UUID is idempotent; a genuinely new attempt gets a new UUID.

@@ -39,6 +39,10 @@ export function validateBackup(value: unknown): Backup {
   backup.library.cycles.forEach(validateCycle);
   backup.library.logs.forEach((log) => validateActivity(log, backup.library));
   for (const item of backup.session?.messages ?? []) {
+    const carousel = item.carousel;
+    if (carousel && !backup.library.cycles.some((cycle) => cycle.id === carousel.cycleId && carousel.hobbyIds.every((id) => cycle.recommendations.some((hobby) => hobby.hobbyId === id)))) {
+      throw new Error('Invalid recommendation carousel reference');
+    }
     if (item.recommendation && !backup.library.cycles.some((cycle) => cycle.id === item.recommendation?.cycleId && cycle.recommendations.some((hobby) => hobby.hobbyId === item.recommendation?.hobbyId))) {
       throw new Error('Invalid recommendation message reference');
     }
