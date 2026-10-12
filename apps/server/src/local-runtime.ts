@@ -25,7 +25,8 @@ export function localRuntimeSettings(
       OLLAMA_MAX_LOADED_MODELS: '1',
       OLLAMA_DEBUG: 'false',
       HOBBYMAXX_PROJECT_ROOT: root,
-      HOBBYMAXX_OLLAMA_EXECUTABLE: platform === 'win32' ? join(runtime, 'ollama.exe') : 'ollama',
+      HOBBYMAXX_OLLAMA_EXECUTABLE:
+        platform === 'win32' ? join(runtime, 'ollama.exe') : 'ollama',
       HOBBYMAXX_OLLAMA_HOME: runtime,
       HOBBYMAXX_SERVER_WATCH: watch ? 'true' : 'false',
     },

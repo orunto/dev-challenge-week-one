@@ -14,7 +14,9 @@ function terminate(child, force = false) {
   }
   if (process.platform === 'win32') {
     // Kill only the tree owned by this supervisor, including Ollama's model runner.
-    const task = spawn('taskkill.exe', ['/PID', String(child.pid), '/T', '/F'], { stdio: 'ignore' });
+    const task = spawn('taskkill.exe', ['/PID', String(child.pid), '/T', '/F'], {
+      stdio: 'ignore',
+    });
     task.once('error', () => child.kill());
   } else {
     child.kill(force ? 'SIGKILL' : 'SIGTERM');
@@ -46,7 +48,9 @@ function start(command, args, stdio, extraEnvironment = {}) {
   });
   children.add(child);
   child.once('error', (error) => {
-    const code = ['ENOENT', 'EACCES', 'EPERM'].includes(error.code) ? error.code : 'CHILD_START_FAILED';
+    const code = ['ENOENT', 'EACCES', 'EPERM'].includes(error.code)
+      ? error.code
+      : 'CHILD_START_FAILED';
     console.error(JSON.stringify({ event: 'child_start_failed', code }));
     children.delete(child);
     stop(1);
@@ -54,12 +58,15 @@ function start(command, args, stdio, extraEnvironment = {}) {
   child.once('exit', (code) => {
     children.delete(child);
     if (!stopping) {
-      console.error(JSON.stringify({
-        event: 'child_exited',
-        component: args[0] === 'serve' ? 'ollama' : 'api',
-        exitCode: code,
-        message: 'A managed process exited. Check startup diagnostics and whether an earlier instance is using its port.',
-      }));
+      console.error(
+        JSON.stringify({
+          event: 'child_exited',
+          component: args[0] === 'serve' ? 'ollama' : 'api',
+          exitCode: code,
+          message:
+            'A managed process exited. Check startup diagnostics and whether an earlier instance is using its port.',
+        }),
+      );
       stop(1);
     }
   });
@@ -71,17 +78,26 @@ process.once('SIGINT', () => stop());
 async function main() {
   await mkdir(process.env.OLLAMA_MODELS ?? '/var/data/models', { recursive: true });
   const home = process.env.HOBBYMAXX_OLLAMA_HOME;
-  start(process.env.HOBBYMAXX_OLLAMA_EXECUTABLE ?? 'ollama', ['serve'], 'ignore', home ? { HOME: home, USERPROFILE: home } : {});
-  const apiArguments = process.env.HOBBYMAXX_SERVER_WATCH === 'true'
-    ? ['--watch', '--import', 'tsx', 'apps/server/src/index.ts']
-    : ['apps/server/dist/index.js'];
+  start(
+    process.env.HOBBYMAXX_OLLAMA_EXECUTABLE ?? 'ollama',
+    ['serve'],
+    'ignore',
+    home ? { HOME: home, USERPROFILE: home } : {},
+  );
+  const apiArguments =
+    process.env.HOBBYMAXX_SERVER_WATCH === 'true'
+      ? ['--watch', '--import', 'tsx', 'apps/server/src/index.ts']
+      : ['apps/server/dist/index.js'];
   start(process.execPath, apiArguments, 'inherit');
   const base = process.env.OLLAMA_URL ?? 'http://127.0.0.1:11434';
   let available = false;
   for (let i = 0; i < 60 && !stopping; i++) {
     try {
-      available = (await fetch(`${base}/api/tags`, { signal: AbortSignal.any([shutdown.signal, AbortSignal.timeout(1000)]) }))
-        .ok;
+      available = (
+        await fetch(`${base}/api/tags`, {
+          signal: AbortSignal.any([shutdown.signal, AbortSignal.timeout(1000)]),
+        })
+      ).ok;
     } catch {
       /* Runtime startup can take a moment. */
     }
@@ -94,7 +110,11 @@ async function main() {
     throw new Error('Runtime did not start');
   }
   const model = process.env.OLLAMA_MODEL ?? evaluatedModel.tag;
-  const tags = await (await fetch(`${base}/api/tags`, { signal: AbortSignal.any([shutdown.signal, AbortSignal.timeout(3000)]) })).json();
+  const tags = await (
+    await fetch(`${base}/api/tags`, {
+      signal: AbortSignal.any([shutdown.signal, AbortSignal.timeout(3000)]),
+    })
+  ).json();
   if (!tags.models?.some((item) => item.name === model)) {
     console.log(JSON.stringify({ event: 'model_install_started', model }));
     const result = await fetch(`${base}/api/pull`, {
@@ -107,7 +127,11 @@ async function main() {
       throw new Error('Model installation failed');
     }
   }
-  const verifiedTags = await (await fetch(`${base}/api/tags`, { signal: AbortSignal.any([shutdown.signal, AbortSignal.timeout(3000)]) })).json();
+  const verifiedTags = await (
+    await fetch(`${base}/api/tags`, {
+      signal: AbortSignal.any([shutdown.signal, AbortSignal.timeout(3000)]),
+    })
+  ).json();
   const installed = verifiedTags.models?.find((item) => item.name === model);
   if (installed?.digest !== (process.env.MODEL_DIGEST ?? evaluatedModel.digest)) {
     throw new Error('Model digest mismatch');

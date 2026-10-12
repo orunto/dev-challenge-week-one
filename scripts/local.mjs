@@ -12,18 +12,32 @@ try {
     process.loadEnvFile(environmentFile);
   }
   stage = 'configuration';
-  const settings = localRuntimeSettings(root, process.env, process.argv.includes('--watch'));
+  const settings = localRuntimeSettings(
+    root,
+    process.env,
+    process.argv.includes('--watch'),
+  );
   if (process.platform === 'win32' && !existsSync(settings.executable)) {
-    console.error(JSON.stringify({
-      event: 'startup_failed', stage: 'runtime', code: 'LOCAL_RUNTIME_MISSING',
-      message: 'Place the portable Ollama runtime in .runtime/ollama before starting the local stack.',
-    }));
+    console.error(
+      JSON.stringify({
+        event: 'startup_failed',
+        stage: 'runtime',
+        code: 'LOCAL_RUNTIME_MISSING',
+        message:
+          'Place the portable Ollama runtime in .runtime/ollama before starting the local stack.',
+      }),
+    );
     process.exitCode = 1;
   } else if (!existsSync(settings.apiEntry)) {
-    console.error(JSON.stringify({
-      event: 'startup_failed', stage: 'application', code: 'API_BUILD_MISSING',
-      message: 'Build the API with bun run build:server before starting the local stack.',
-    }));
+    console.error(
+      JSON.stringify({
+        event: 'startup_failed',
+        stage: 'application',
+        code: 'API_BUILD_MISSING',
+        message:
+          'Build the API with bun run build:server before starting the local stack.',
+      }),
+    );
     process.exitCode = 1;
   } else {
     Object.assign(process.env, settings.environment);

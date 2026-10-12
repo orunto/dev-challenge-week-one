@@ -4,12 +4,17 @@ import { readConfig } from '../src/config.js';
 import { startupFailure } from '../src/startup.js';
 
 test('startup diagnostics identify port conflicts without disclosing raw error text', () => {
-  const error = Object.assign(new Error('PRIVATE_HOST_AND_ERROR_FIXTURE'), { code: 'EADDRINUSE' });
+  const error = Object.assign(new Error('PRIVATE_HOST_AND_ERROR_FIXTURE'), {
+    code: 'EADDRINUSE',
+  });
   const event = startupFailure(error, 'listen');
   assert.equal(event.code, 'EADDRINUSE');
   assert.equal(event.stage, 'listen');
   assert.ok(!JSON.stringify(event).includes('PRIVATE_HOST_AND_ERROR_FIXTURE'));
-  const unexpected = startupFailure({ code: 'PRIVATE_ERROR_CODE', message: 'PRIVATE_MESSAGE' }, 'application');
+  const unexpected = startupFailure(
+    { code: 'PRIVATE_ERROR_CODE', message: 'PRIVATE_MESSAGE' },
+    'application',
+  );
   assert.equal(unexpected.code, 'STARTUP_FAILURE');
   assert.ok(!JSON.stringify(unexpected).includes('PRIVATE_'));
   const missingModule = startupFailure(

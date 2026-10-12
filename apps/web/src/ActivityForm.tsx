@@ -44,9 +44,7 @@ export function ActivityForm({
       date < (cycle.startedOn ?? cycle.startedAt.slice(0, 10)) ||
       date > localDay()
     ) {
-      setError(
-        'Check the date and both ratings.',
-      );
+      setError('Check the date and both ratings.');
       return;
     }
     saving.current = true;
@@ -57,9 +55,7 @@ export function ActivityForm({
       submission.current = crypto.randomUUID();
       setReflection('');
     } catch {
-      setError(
-        'Couldn’t save this attempt. Try again.',
-      );
+      setError('Couldn’t save this attempt. Try again.');
     } finally {
       saving.current = false;
       setBusy(false);
@@ -92,43 +88,40 @@ export function ActivityForm({
         />
       </Field>
       <div className="field-grid">
-      <Field id={`${prefix}-enjoyment`} label="Enjoyment">
-        <select
-          id={`${prefix}-enjoyment`}
-          value={enjoyment}
-          disabled={busy}
-          onChange={(event) => setEnjoyment(event.target.value)}
-        >
-          <option value="">Choose a rating</option>
-          {[1, 2, 3, 4, 5].map((value) => (
-            <option key={value} value={value}>
-              {value} ·{' '}
-              {value === 1 ? 'Not for me' : value === 5 ? 'Loved it' : 'In between'}
-            </option>
-          ))}
-        </select>
-      </Field>
-      <Field id={`${prefix}-difficulty`} label="Difficulty">
-        <select
-          id={`${prefix}-difficulty`}
-          value={difficulty}
-          disabled={busy}
-          onChange={(event) => setDifficulty(event.target.value)}
-        >
-          <option value="">Choose a rating</option>
-          {[1, 2, 3, 4, 5].map((value) => (
-            <option key={value} value={value}>
-              {value} ·{' '}
-              {value === 1 ? 'Easy' : value === 5 ? 'Very difficult' : 'In between'}
-            </option>
-          ))}
-        </select>
-      </Field>
+        <Field id={`${prefix}-enjoyment`} label="Enjoyment">
+          <select
+            id={`${prefix}-enjoyment`}
+            value={enjoyment}
+            disabled={busy}
+            onChange={(event) => setEnjoyment(event.target.value)}
+          >
+            <option value="">Choose a rating</option>
+            {[1, 2, 3, 4, 5].map((value) => (
+              <option key={value} value={value}>
+                {value} ·{' '}
+                {value === 1 ? 'Not for me' : value === 5 ? 'Loved it' : 'In between'}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field id={`${prefix}-difficulty`} label="Difficulty">
+          <select
+            id={`${prefix}-difficulty`}
+            value={difficulty}
+            disabled={busy}
+            onChange={(event) => setDifficulty(event.target.value)}
+          >
+            <option value="">Choose a rating</option>
+            {[1, 2, 3, 4, 5].map((value) => (
+              <option key={value} value={value}>
+                {value} ·{' '}
+                {value === 1 ? 'Easy' : value === 5 ? 'Very difficult' : 'In between'}
+              </option>
+            ))}
+          </select>
+        </Field>
       </div>
-      <Field
-        id={`${prefix}-reflection`}
-        label="Note (optional)"
-      >
+      <Field id={`${prefix}-reflection`} label="Note (optional)">
         <textarea
           id={`${prefix}-reflection`}
           rows={2}

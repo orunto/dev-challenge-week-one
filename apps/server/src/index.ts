@@ -45,8 +45,6 @@ async function main() {
 
 main().catch((error: unknown) => {
   // Configuration/upstream exception strings are not safe public log material.
-  console.error(
-    JSON.stringify(startupFailure(error, stage)),
-  );
+  console.error(JSON.stringify(startupFailure(error, stage)));
   process.exitCode = 1;
 });
