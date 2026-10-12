@@ -6,10 +6,13 @@ import {
   profileSchema,
   onboardingAnswersSchema,
 } from '@hobbymaxx/shared';
+import { reflectionSchema } from './reflection.js';
 
 export const storedMessageSchema = chatMessageSchema.extend({
   id: z.string().uuid(),
   status: z.enum(['complete', 'interrupted']),
+  source: z.enum(['gemma', 'utility']).optional(),
+  recommendation: z.object({ cycleId: z.string().uuid(), hobbyId: z.string().min(1).max(64) }).strict().optional(),
 });
 
 export const reviewFormSchema = z.object({
@@ -37,6 +40,11 @@ export const sessionSchema = z
     confirmedProfile: profileSchema.nullable(),
     questionAnswers: onboardingAnswersSchema.optional(),
     onboardingFinished: z.boolean().optional(),
+    reflection: reflectionSchema.nullable().optional(),
+    refreshChoice: z.boolean().optional(),
+    pendingRefresh: z.string().max(64).nullable().optional(),
+    refreshPending: z.boolean().optional(),
+    historyOffset: z.number().int().min(0).max(5000).optional(),
   })
   .strict()
   .refine((value) => value.screen !== 'confirmed' || value.confirmedProfile !== null);
@@ -74,7 +82,15 @@ export function newSession(): Session {
     confirmedProfile: null,
     questionAnswers: [],
     onboardingFinished: false,
+    reflection: null,
+    refreshChoice: false,
+    pendingRefresh: null,
+    refreshPending: false,
   };
+}
+
+export function utilityMessage(role: StoredMessage['role'], content: string): StoredMessage {
+  return { ...message(role, content), source: 'utility' };
 }
 
 export function message(

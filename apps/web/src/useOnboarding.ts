@@ -9,10 +9,13 @@ import {
   serviceStatus,
   streamChat,
   requestRecommendations,
+  requestRefresh,
 } from './api.js';
 import { answerContext, answersFor, onboardingFinished, profileFromAnswers, validateAnswer } from './onboarding.js';
-import { emptyLibrary, librarySchema, loadLibrary, makeCycle, saveOnboardingResult, type Library } from './library.js';
-import { message, newSession, type ReviewForm, type Session } from './session.js';
+import { appendActivity, emptyLibrary, isDue, librarySchema, loadLibrary, makeCycle, points, saveOnboardingResult, saveReflectionResult, type Library } from './library.js';
+import { message, newSession, utilityMessage, type ReviewForm, type Session } from './session.js';
+import { addMessages, historyMessage, recommendationMessages } from './chat-hobbies.js';
+import { advanceReflection, reflectionChoices, reflectionLog, reflectionPrompt, startReflection, type Reflection } from './reflection.js';
 import {
   loadSession,
   pauseStorageWrites,
@@ -57,6 +60,7 @@ export function useOnboarding(chatVisible = true) {
   const [maxInputBytes, setMaxInputBytes] = useState(1000);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [generatedLibrary, setGeneratedLibrary] = useState<Library | null>(null);
+  const [dataRevision, setDataRevision] = useState(0);
   const active = useRef<AbortController | null>(null);
   const saveSequence = useRef(0);
   const mounted = useRef(true);
@@ -65,6 +69,7 @@ export function useOnboarding(chatVisible = true) {
   const privacyPaused = useRef(false);
   const openingAttempted = useRef(false);
   const recommendationAttempted = useRef(false);
+  const utilityBusy = useRef(false);
 
   useEffect(() => {
     mounted.current = true;
@@ -370,8 +375,8 @@ export function useOnboarding(chatVisible = true) {
       const next: Session = {
         ...current, draft: { ...profile, excludedHobbyIds: profile.excludedHobbyIds ?? [] },
         form: formFromDraft({ ...profile, excludedHobbyIds: profile.excludedHobbyIds ?? [] }),
-        confirmedProfile: profile, onboardingFinished: true, screen: 'confirmed', composer: '',
-        messages: current.discardConversation ? [] : current.messages,
+        confirmedProfile: profile, onboardingFinished: true, screen: 'conversation', composer: '',
+        messages: addMessages(current.discardConversation ? [] : current.messages, ...recommendationMessages(cycle)),
         questionAnswers: current.discardConversation ? [] : answers,
       };
       privacyPaused.current = true;
@@ -415,6 +420,243 @@ export function useOnboarding(chatVisible = true) {
       setError('');
       setNotice('');
       update({ acceptedHostedProcessing: true, screen: 'conversation' });
+    }
+  }
+
+  useEffect(() => {
+    if (!loaded || !chatVisible || !session.confirmedProfile || !onboardingFinished(session)) {
+      return;
+    }
+    let alive = true;
+    const attach = (library: Library) => {
+      if (!alive) {
+        return;
+      }
+      setGeneratedLibrary(library);
+      const cycle = library.cycles.find((item) => item.id === library.currentCycleId);
+      if (cycle) {
+        setSession((current) => {
+          const missing = recommendationMessages(cycle).filter((entry) =>
+            !current.messages.some((item) => item.recommendation?.cycleId === cycle.id && item.recommendation.hobbyId === entry.recommendation?.hobbyId));
+          return missing.length ? { ...current, messages: addMessages(current.messages, ...missing) } : current;
+        });
+      }
+    };
+    if (sessionOnly.current) {
+      attach(generatedLibrary ?? emptyLibrary());
+    } else {
+      void loadLibrary().then(attach).catch(() => {
+        if (alive) {
+          setError('Couldn’t open saved hobbies. Reload or check saved data from the info menu.');
+        }
+      });
+    }
+    return () => { alive = false; };
+  }, [loaded, chatVisible, session.confirmedProfile, dataRevision]);
+
+  function beginReflection(cycleId: string, hobbyId: string) {
+    if (busy || session.reflection || utilityBusy.current) {
+      return;
+    }
+    const cycle = generatedLibrary?.cycles.find((item) => item.id === cycleId);
+    if (!cycle) {
+      setError('This hobby could not be opened. Reload your saved history.');
+      return;
+    }
+    const draft = startReflection(cycle, hobbyId);
+    const name = hobbies.find((item) => item.id === hobbyId)?.name ?? hobbyId;
+    setError('');
+    setNotice(reflectionPrompt(draft));
+    update({ screen: 'conversation', composer: '', reflection: draft, refreshChoice: false,
+      messages: addMessages(session.messages, utilityMessage('user', `I tried ${name}.`), utilityMessage('assistant', reflectionPrompt(draft))) });
+  }
+
+  function showHobbyDetails(cycleId: string, hobbyId: string) {
+    const cycle = generatedLibrary?.cycles.find((item) => item.id === cycleId);
+    const hobby = hobbies.find((item) => item.id === hobbyId);
+    if (!busy && !session.reflection && hobby && cycle?.recommendations.some((item) => item.hobbyId === hobbyId)) {
+      update({ messages: addMessages(session.messages, utilityMessage('user', `Show supplies for ${hobby.name}.`), utilityMessage('assistant', `Supplies: ${hobby.equipment.join(', ')}.\n\n${hobby.estimatedCost}.\n\nAlternative: ${hobby.accessibleActivity}`)) });
+    }
+  }
+
+  async function answerReflection(reply: string, skipNote = false) {
+    if (busy || utilityBusy.current || !session.reflection) {
+      return;
+    }
+    const cycle = generatedLibrary?.cycles.find((item) => item.id === session.reflection?.cycleId);
+    if (!cycle) {
+      setError('This activity is missing from saved history. Cancel this rating or reload.');
+      return;
+    }
+    let draft: Reflection;
+    try {
+      draft = advanceReflection(session.reflection, reply, cycle, skipNote);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Choose one of the replies below.');
+      return;
+    }
+    const choices = reflectionChoices(session.reflection);
+    const text = skipNote ? 'Skip note' : choices.find((choice) => choice.value === reply)?.label ?? reply.trim();
+    const next: Session = { ...session, composer: '', reflection: draft,
+      messages: addMessages(session.messages, utilityMessage('user', text), ...(draft.step === 'save' ? [] : [utilityMessage('assistant', reflectionPrompt(draft))])) };
+    setSession(next);
+    setError('');
+    setNotice(draft.step === 'save' ? 'Saving your attempt.' : reflectionPrompt(draft));
+    if (draft.step === 'save') {
+      await commitReflection(next);
+    }
+  }
+
+  async function commitReflection(current: Session) {
+    if (!current.reflection || utilityBusy.current || active.current) {
+      return;
+    }
+    utilityBusy.current = true;
+    setOperation('saving');
+    setError('');
+    privacyPaused.current = true;
+    saveSequence.current++;
+    try {
+      const log = reflectionLog(current.reflection);
+      const previous = sessionOnly.current ? generatedLibrary ?? emptyLibrary() : await loadLibrary();
+      const projected = appendActivity(previous, log);
+      const earned = points(projected.logs) - points(previous.logs);
+      const receipt = `Saved. Enjoyment ${log.enjoyment}/5, difficulty ${log.difficulty}/5.${earned ? ` +${earned} points.` : ''}${sessionOnly.current ? ' This session only.' : ''}`;
+      const next: Session = { ...current, reflection: null, composer: '', messages: addMessages(current.messages, utilityMessage('assistant', receipt)) };
+      const saved = sessionOnly.current ? projected : await saveReflectionResult(next, log);
+      setGeneratedLibrary(saved);
+      setSession(next);
+      setStorage(sessionOnly.current ? 'session-only' : 'saved');
+      setNotice(receipt);
+    } catch {
+      setError('Couldn’t save this rating. Retry; the same attempt won’t be counted twice.');
+    } finally {
+      privacyPaused.current = false;
+      utilityBusy.current = false;
+      setOperation('idle');
+    }
+  }
+
+  function cancelReflection() {
+    if (!busy && session.reflection) {
+      update({ reflection: null, composer: '', messages: addMessages(session.messages, utilityMessage('assistant', 'Rating cancelled. No attempt was saved.')) });
+      setError('');
+      setNotice('Rating cancelled.');
+    }
+  }
+
+  function showHistory(older = false) {
+    if (!busy && !session.reflection && generatedLibrary) {
+      const offset = older ? session.historyOffset ?? 0 : 0;
+      update({ screen: 'conversation', historyOffset: Math.min(offset + 2, generatedLibrary.logs.length), messages: addMessages(session.messages, utilityMessage('user', older ? 'Show earlier attempts.' : 'Show my activity history.'), utilityMessage('assistant', historyMessage(generatedLibrary, offset))) });
+    }
+  }
+
+  function beginRefresh() {
+    if (!generatedLibrary) {
+      setError('Saved hobbies are still loading. Try again shortly.');
+      return;
+    }
+    const cycle = generatedLibrary?.cycles.find((item) => item.id === generatedLibrary.currentCycleId);
+    if (busy || session.reflection) {
+      return;
+    }
+    if (cycle && !isDue(cycle)) {
+      setError(`Refresh is available ${new Date(cycle.dueAt).toLocaleDateString()}.`);
+      return;
+    }
+    setError('');
+    update({ refreshChoice: true, refreshPending: false, pendingRefresh: null, messages: addMessages(session.messages, utilityMessage('user', 'Find new hobbies.'), utilityMessage('assistant', cycle ? 'Would you like to keep a favorite, or try three new hobbies?' : 'Ready to find your three hobbies?')) });
+  }
+
+  async function refreshHobbies(retained = '') {
+    if (busy || active.current || utilityBusy.current || !session.confirmedProfile) {
+      return;
+    }
+    const requestSession: Session = { ...session, composer: '', refreshChoice: false, refreshPending: true, pendingRefresh: retained || null,
+      messages: session.refreshPending ? session.messages : addMessages(session.messages, utilityMessage('user', retained ? `Keep ${hobbies.find((item) => item.id === retained)?.name ?? retained}.` : 'Try three new hobbies.')) };
+    setSession(requestSession);
+    if (!online) {
+      setError('New hobbies need internet. Your saved hobbies are still here.');
+      return;
+    }
+    const controller = new AbortController();
+    active.current = controller;
+    setOperation('recommending');
+    setError('');
+    let committing = false;
+    try {
+      const previous = sessionOnly.current ? generatedLibrary ?? emptyLibrary() : await loadLibrary();
+      const cycle = previous.cycles.find((item) => item.id === previous.currentCycleId);
+      if (cycle && !isDue(cycle)) {
+        throw new ApiError('INVALID_REQUEST');
+      }
+      let output;
+      if (cycle) {
+        const feedback = cycle.recommendations.flatMap((item) => {
+          const log = previous.logs.filter((entry) => entry.cycleId === cycle.id && entry.hobbyId === item.hobbyId).at(-1);
+          return log ? [{ hobbyId: item.hobbyId, enjoyment: log.enjoyment, difficulty: log.difficulty, reflection: log.reflection.slice(0, 160) }] : [];
+        });
+        const body = { profile: session.confirmedProfile, previousHobbyIds: cycle.recommendations.map((item) => item.hobbyId), ...(retained ? { retainedHobbyId: retained } : {}), feedback };
+        if (new TextEncoder().encode(JSON.stringify(body)).byteLength > maxInputBytes) {
+          body.feedback = feedback.map(({ hobbyId, enjoyment, difficulty }) => ({ hobbyId, enjoyment, difficulty, reflection: '' }));
+        }
+        output = await requestRefresh(body, controller.signal);
+      } else {
+        output = await requestRecommendations(session.confirmedProfile, controller.signal);
+      }
+      controller.signal.throwIfAborted();
+      const nextCycle = makeCycle(output, session.confirmedProfile, session.cycleDays);
+      const next: Session = { ...requestSession, screen: 'conversation', refreshChoice: false, refreshPending: false, pendingRefresh: null,
+        messages: addMessages(requestSession.messages, ...recommendationMessages(nextCycle)) };
+      privacyPaused.current = true;
+      saveSequence.current++;
+      committing = true;
+      setOperation('saving');
+      const saved = sessionOnly.current ? librarySchema.parse({ ...previous, cycles: [...previous.cycles, nextCycle], currentCycleId: nextCycle.id }) : await saveOnboardingResult(next, nextCycle, previous.currentCycleId, false);
+      setGeneratedLibrary(saved);
+      setSession(next);
+      setNotice('Hobbies ready.');
+    } catch (cause) {
+      setError(committing ? 'Couldn’t save new hobbies. Your previous cycle is unchanged.' : controller.signal.aborted ? 'Stopped.' : errorCopy(cause));
+    } finally {
+      privacyPaused.current = false;
+      active.current = null;
+      setOperation('idle');
+    }
+  }
+
+  async function sendChatMessage(text: string) {
+    if (!onboardingFinished(session)) {
+      await chat(text);
+    } else if (session.reflection) {
+      await answerReflection(text);
+    } else if (session.refreshChoice) {
+      const cycle = generatedLibrary?.cycles.find((item) => item.id === generatedLibrary?.currentCycleId);
+      const favorite = cycle?.recommendations.find((item) => item.hobbyId === text.trim() || hobbies.find((hobby) => hobby.id === item.hobbyId)?.name.toLowerCase() === text.trim().toLowerCase());
+      if (favorite || /^(none|new|three new hobbies|find hobbies)$/i.test(text.trim())) {
+        await refreshHobbies(favorite?.hobbyId ?? '');
+      } else {
+        setError('Choose a favorite below, or reply “none”.');
+      }
+    } else if (/^(more history|older records)$/i.test(text.trim())) {
+      showHistory(true);
+      update({ composer: '' });
+    } else if (/^(history|records)$/i.test(text.trim())) {
+      showHistory();
+      update({ composer: '' });
+    } else if (/^(refresh|new hobbies)$/i.test(text.trim())) {
+      beginRefresh();
+      update({ composer: '' });
+    } else {
+      const target = generatedLibrary?.cycles.find((item) => item.id === generatedLibrary?.currentCycleId);
+      const name = text.replace(/^(rate|i tried)\s+/i, '').trim().toLowerCase();
+      const hobby = target?.recommendations.find((item) => item.hobbyId === name || hobbies.find((entry) => entry.id === item.hobbyId)?.name.toLowerCase() === name);
+      if (target && hobby) {
+        beginReflection(target.id, hobby.hobbyId);
+      } else {
+        update({ composer: '', messages: addMessages(session.messages, utilityMessage('user', text.trim()), utilityMessage('assistant', 'Tap “Rate activity” under a hobby, or ask for “history” or “refresh”.')) });
+      }
     }
   }
 
@@ -483,7 +725,7 @@ export function useOnboarding(chatVisible = true) {
         ...parsed.data,
         excludedHobbyIds: parsed.data.excludedHobbyIds ?? [],
       }),
-      screen: 'confirmed',
+      screen: 'conversation',
       messages: session.discardConversation ? [] : session.messages,
       questionAnswers: session.discardConversation ? [] : answersFor(session),
       composer: session.discardConversation ? '' : session.composer,
@@ -561,6 +803,7 @@ export function useOnboarding(chatVisible = true) {
       setNotice('');
       openingAttempted.current = false;
       recommendationAttempted.current = false;
+      setDataRevision((value) => value + 1);
     }
     privacyPaused.current = false;
     resumeStorageWrites();
@@ -571,6 +814,7 @@ export function useOnboarding(chatVisible = true) {
   const questionReady = !finished && answeredCount < onboardingQuestionCount &&
     session.messages.filter((item) => item.status === 'complete').at(-1)?.role === 'assistant';
   const retryChat = !finished && session.messages.filter((item) => item.status === 'complete').at(-1)?.role === 'user';
+  const currentCycle = generatedLibrary?.cycles.find((item) => item.id === generatedLibrary?.currentCycleId);
   return {
     session,
     loaded,
@@ -590,7 +834,20 @@ export function useOnboarding(chatVisible = true) {
     questionReady,
     onboardingFinished: finished,
     generatedLibrary,
-    syncLibrary: setGeneratedLibrary,
+    beginReflection,
+    showHobbyDetails,
+    answerReflection,
+    cancelReflection,
+    showHistory,
+    beginRefresh,
+    refreshHobbies,
+    sendChatMessage,
+    quickReplies: session.reflection ? reflectionChoices(session.reflection) : session.refreshChoice
+      ? [{ label: currentCycle ? 'Three new hobbies' : 'Find hobbies', value: '' }, ...(currentCycle?.recommendations.map((item) => ({ label: hobbies.find((hobby) => hobby.id === item.hobbyId)?.name ?? item.hobbyId, value: item.hobbyId })) ?? [])]
+      : [],
+    currentCycle,
+    canRefresh: Boolean(generatedLibrary) && !session.reflection && (!currentCycle || isDue(currentCycle)),
+    retryUtility: () => session.reflection?.step === 'save' ? commitReflection(session) : session.refreshPending ? refreshHobbies(session.pendingRefresh ?? '') : Promise.resolve(),
     update,
     go,
     chat,

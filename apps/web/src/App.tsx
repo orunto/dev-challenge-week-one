@@ -4,7 +4,6 @@ import { hobbies } from '@hobbymaxx/hobby-catalog';
 import { BrandMark, Button, Field, Icon, TypingBubble } from './components.js';
 import type { ReviewForm } from './session.js';
 import { useOnboarding } from './useOnboarding.js';
-import { Experiments } from './Experiments.js';
 import { PrivacyPanel } from './PrivacyPanel.js';
 
 type Onboarding = ReturnType<typeof useOnboarding>;
@@ -14,12 +13,11 @@ export function App() {
   const onboarding = useOnboarding(!privacyOpen);
   const { session, loaded, busy, storage } = onboarding;
   const [infoOpen, setInfoOpen] = useState(false);
-  const [productBusy, setProductBusy] = useState(false);
   const [offlineReady, setOfflineReady] = useState(false);
   const [offlineFailed, setOfflineFailed] = useState(false);
   const [update, setUpdate] = useState<ServiceWorkerRegistration | null>(null);
   const app = useRef<HTMLDivElement>(null);
-  const view = privacyOpen ? 'privacy' : session.screen;
+  const view = privacyOpen ? 'privacy' : session.screen === 'confirmed' ? 'conversation' : session.screen;
 
   useEffect(() => {
     const viewport = window.visualViewport;
@@ -59,7 +57,7 @@ export function App() {
     if (privacyOpen) {
       setPrivacyOpen(false);
     } else {
-      if (session.screen === 'conversation') {
+      if (view === 'conversation') {
         onboarding.go('welcome');
       } else {
         onboarding.startConversation();
@@ -78,7 +76,7 @@ export function App() {
             <button
               className="icon-button"
               aria-label="Go back"
-              disabled={busy || productBusy}
+              disabled={busy}
               onClick={back}
             >
               <Icon name="back" />
@@ -94,9 +92,9 @@ export function App() {
           {session.confirmedProfile && view === 'conversation' && (
             <button
               className="icon-button"
-              aria-label="Hobbies and records"
-              disabled={busy}
-              onClick={() => onboarding.go('confirmed')}
+              aria-label="Show activity history in chat"
+              disabled={busy || Boolean(session.reflection)}
+              onClick={() => onboarding.showHistory()}
             >
               <Icon name="book" />
             </button>
@@ -149,28 +147,10 @@ export function App() {
                   Let’s chat <Icon name="send" />
                 </Button>
               </section>
-            ) : session.screen === 'conversation' ? (
+            ) : session.screen === 'conversation' || session.screen === 'confirmed' ? (
               <Conversation onboarding={onboarding} />
             ) : session.screen === 'review' ? (
               <Review onboarding={onboarding} />
-            ) : session.confirmedProfile ? (
-              <section className="utility-view">
-                <Experiments
-                  profile={session.confirmedProfile}
-                  days={session.cycleDays}
-                  sessionOnly={storage === 'session-only'}
-                  onBusy={setProductBusy}
-                  initialLibrary={onboarding.generatedLibrary}
-                  onLibraryChange={onboarding.syncLibrary}
-                />
-                <button
-                  className="text-action utility-edit"
-                  disabled={productBusy}
-                  onClick={() => onboarding.go('review')}
-                >
-                  Edit preferences
-                </button>
-              </section>
             ) : null}
           </>
         )}
@@ -182,7 +162,6 @@ export function App() {
           offlineReady={offlineReady}
           offlineFailed={offlineFailed}
           update={update}
-          productBusy={productBusy}
           onClose={() => setInfoOpen(false)}
           onPrivacy={() => {
             setInfoOpen(false);
@@ -199,13 +178,23 @@ function Conversation({ onboarding }: { onboarding: Onboarding }) {
   const log = useRef<HTMLDivElement>(null);
   const composer = useRef<HTMLTextAreaElement>(null);
   const follow = useRef(true);
+  const lastSeen = useRef<string | undefined>(undefined);
   const needsOpening = !session.messages.some((item) => item.status === 'complete');
+  const reflection = session.reflection;
+  const canReply = onboarding.onboardingFinished
+    ? reflection ? reflection.step !== 'save' : true
+    : onboarding.questionReady;
 
   useEffect(() => {
+    const latest = session.messages.at(-1);
+    if (latest?.id !== lastSeen.current && latest?.source === 'utility') {
+      follow.current = true;
+    }
+    lastSeen.current = latest?.id;
     if (follow.current && log.current) {
       log.current.scrollTop = log.current.scrollHeight;
     }
-  }, [session.messages.length, onboarding.partial, operation, onboarding.error]);
+  }, [session.messages.at(-1)?.id, onboarding.partial, operation, onboarding.error]);
 
   useEffect(() => {
     const element = composer.current;
@@ -214,6 +203,17 @@ function Conversation({ onboarding }: { onboarding: Onboarding }) {
       element.style.height = `${Math.min(element.scrollHeight, 120)}px`;
     }
   }, [session.composer]);
+
+  useEffect(() => {
+    if (!reflection || busy || reflection.step === 'save') {
+      return;
+    }
+    if (reflection.step === 'note') {
+      composer.current?.focus({ preventScroll: true });
+    } else {
+      log.current?.querySelector<HTMLButtonElement>('.quick-reply:not(:disabled)')?.focus({ preventScroll: true });
+    }
+  }, [reflection?.step, busy]);
 
   return (
     <section className="chat" aria-label="Chat with Gemma">
@@ -234,10 +234,14 @@ function Conversation({ onboarding }: { onboarding: Onboarding }) {
           }
         }}
       >
+        <div className="chat-thread">
         {session.messages.map((item) => (
           <article className={`message message--${item.role}`} key={item.id}>
-            <span className="sr-only">{item.role === 'user' ? 'You' : 'Gemma'}:</span>
+            <span className="sr-only">{item.role === 'user' ? 'You' : item.source === 'utility' ? 'HobbyMaxx' : 'Gemma'}:</span>
             <p>{item.content}</p>
+            {item.recommendation && onboarding.generatedLibrary?.cycles.some((cycle) => cycle.id === item.recommendation?.cycleId && cycle.recommendations.some((hobby) => hobby.hobbyId === item.recommendation?.hobbyId)) && (
+              <div className="recommendation-actions"><button className="text-action" disabled={busy || Boolean(reflection)} onClick={() => onboarding.beginReflection(item.recommendation!.cycleId, item.recommendation!.hobbyId)}>Rate activity</button><button className="text-action" disabled={busy || Boolean(reflection)} onClick={() => onboarding.showHobbyDetails(item.recommendation!.cycleId, item.recommendation!.hobbyId)}>Supplies & alternatives</button></div>
+            )}
             {item.status === 'interrupted' && (
               <span className="message-note">Stopped</span>
             )}
@@ -249,26 +253,34 @@ function Conversation({ onboarding }: { onboarding: Onboarding }) {
             <p>{onboarding.partial}</p>
           </article>
         )}
-        {busy && !onboarding.partial && <TypingBubble label={operation === 'extracting' || operation === 'recommending' ? 'Gemma is preparing your hobbies' : operation === 'saving' ? 'Saving your hobbies' : 'Gemma is replying'} />}
+        {busy && !onboarding.partial && <TypingBubble label={operation === 'extracting' || operation === 'recommending' ? 'Gemma is preparing your hobbies' : operation === 'saving' ? 'Saving your work' : 'Gemma is replying'} />}
         {onboarding.error && (
           <p className="error-banner" role="alert">
             {onboarding.error}
           </p>
         )}
         {!busy &&
-          (onboarding.retryChat ||
+          (session.reflection?.step === 'save' || session.refreshPending || onboarding.retryChat ||
             (needsOpening &&
               (session.messages.length > 0 ||
                 onboarding.error ||
                 onboarding.notice === 'Stopped.'))) && (
             <button
               className="text-action"
-              disabled={!onboarding.online}
-              onClick={() => void onboarding.retryReply()}
+              disabled={!onboarding.onboardingFinished && !onboarding.online}
+              onClick={() => void (onboarding.onboardingFinished ? onboarding.retryUtility() : onboarding.retryReply())}
             >
               Retry
             </button>
-          )}
+           )}
+        {onboarding.quickReplies.length > 0 && (
+          <div className="quick-replies" aria-label="Suggested replies">
+            {onboarding.quickReplies.map((reply) => (
+              <button className="quick-reply" type="button" key={reply.value} disabled={busy} onClick={() => void (reflection ? onboarding.answerReflection(reply.value, reply.value === 'skip-note') : onboarding.refreshHobbies(reply.value))}>{reply.label}</button>
+            ))}
+          </div>
+        )}
+        </div>
       </div>
       <span className="sr-only" role="status">
         {!busy ? onboarding.notice : ''}
@@ -289,13 +301,21 @@ function Conversation({ onboarding }: { onboarding: Onboarding }) {
           </button>
         </div>
       )}
+      {onboarding.onboardingFinished && (
+        <div className="chat-tools">
+          {reflection ? <button className="text-action" disabled={busy} onClick={onboarding.cancelReflection}>Cancel rating</button> : <>
+            <button className="text-action" disabled={busy} onClick={() => onboarding.showHistory()}>History</button>
+            {onboarding.canRefresh && <button className="text-action" disabled={busy} onClick={onboarding.beginRefresh}>{onboarding.currentCycle ? 'Refresh hobbies' : 'Find hobbies'}</button>}
+          </>}
+        </div>
+      )}
       <form
         className="composer"
         onSubmit={(event) => {
           event.preventDefault();
-          if (session.composer.trim() && !busy && onboarding.questionReady) {
+          if (session.composer.trim() && !busy && canReply) {
             follow.current = true;
-            void onboarding.chat(session.composer);
+            void onboarding.sendChatMessage(session.composer);
           }
         }}
       >
@@ -306,10 +326,10 @@ function Conversation({ onboarding }: { onboarding: Onboarding }) {
           id="message"
           ref={composer}
           rows={1}
-          maxLength={160}
+          maxLength={onboarding.onboardingFinished ? 500 : 160}
           value={session.composer}
-          placeholder={onboarding.questionsComplete ? 'Questions complete' : 'Message Gemma…'}
-          disabled={busy || !onboarding.questionReady}
+          placeholder={reflection?.step === 'note' ? 'Add a note…' : 'Message…'}
+          disabled={busy || !canReply}
           onChange={(event) => onboarding.update({ composer: event.target.value })}
         />
         {busy ? (
@@ -327,7 +347,7 @@ function Conversation({ onboarding }: { onboarding: Onboarding }) {
             className="icon-button composer-send"
             type="submit"
             aria-label="Send message"
-            disabled={!onboarding.questionReady || !session.composer.trim() || !onboarding.online}
+            disabled={!canReply || !session.composer.trim() || (!onboarding.onboardingFinished && !onboarding.online)}
           >
             <Icon name="send" />
           </button>
@@ -342,7 +362,6 @@ function Info({
   offlineReady,
   offlineFailed,
   update,
-  productBusy,
   onClose,
   onPrivacy,
 }: {
@@ -350,7 +369,6 @@ function Info({
   offlineReady: boolean;
   offlineFailed: boolean;
   update: ServiceWorkerRegistration | null;
-  productBusy: boolean;
   onClose: () => void;
   onPrivacy: () => void;
 }) {
@@ -396,6 +414,7 @@ function Info({
           record how they went, and refresh every 7 or 14 days.
         </p>
         <p>Skipped details use free hobbies, 15-minute sessions, and no setting or company restriction. You can edit these preferences.</p>
+        <p>Rate activities in this chat with quick replies or typed answers. Rating prompts run locally, so logging works offline; later refreshes can use your ratings and notes.</p>
         <details open>
           <summary>Privacy & history</summary>
           <p>
@@ -473,7 +492,7 @@ function Info({
         {update && (
           <Button
             variant="secondary"
-            disabled={busy || productBusy || storage === 'saving'}
+            disabled={busy || storage === 'saving'}
             onClick={() => {
               navigator.serviceWorker.addEventListener(
                 'controllerchange',
@@ -487,12 +506,12 @@ function Info({
           </Button>
         )}
         <div className="info-actions">
-          <Button variant="secondary" disabled={busy || productBusy} onClick={onPrivacy}>
+          <Button variant="secondary" disabled={busy} onClick={onPrivacy}>
             Manage saved data
           </Button>
           <button
             className="text-action"
-            disabled={busy || productBusy}
+            disabled={busy}
             onClick={() => {
               onClose();
               onboarding.go('review');

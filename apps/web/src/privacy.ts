@@ -38,6 +38,14 @@ export function validateBackup(value: unknown): Backup {
   }
   backup.library.cycles.forEach(validateCycle);
   backup.library.logs.forEach((log) => validateActivity(log, backup.library));
+  for (const item of backup.session?.messages ?? []) {
+    if (item.recommendation && !backup.library.cycles.some((cycle) => cycle.id === item.recommendation?.cycleId && cycle.recommendations.some((hobby) => hobby.hobbyId === item.recommendation?.hobbyId))) {
+      throw new Error('Invalid recommendation message reference');
+    }
+  }
+  if (backup.session?.reflection && !backup.library.cycles.some((cycle) => cycle.id === backup.session?.reflection?.cycleId && cycle.recommendations.some((hobby) => hobby.hobbyId === backup.session?.reflection?.hobbyId))) {
+    throw new Error('Invalid pending reflection reference');
+  }
   return backup;
 }
 
@@ -150,6 +158,10 @@ export async function deleteRawConversation(): Promise<Session | null> {
               ...currentSession,
               messages: [],
               questionAnswers: [],
+              reflection: null,
+              refreshChoice: false,
+              refreshPending: false,
+              pendingRefresh: null,
               screen: currentSession.confirmedProfile ? 'confirmed' : 'welcome',
               composer: '',
               discardConversation: true,

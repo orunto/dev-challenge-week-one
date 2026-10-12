@@ -1,5 +1,11 @@
 # Phase four — attempts, points, and refresh
 
+## Current interaction
+
+Recommendations, rating prompts, replies, save receipts, history, and refresh/favorite choices now share the bottom-aligned chat thread. The separate activity form and hobby dashboard components were removed. “Rate activity” begins a locally persisted, guided conversation: completion → date → enjoyment → difficulty → optional note. Quick replies and the normal composer accept the answers; the note or skip completes the save automatically. Guided utility prompts are app-authored, not additional model inference, so rating/logging remains available offline.
+
+Pending ratings keep a stable submission UUID and resume after reload. The completed activity record and chat receipt commit atomically, with idempotent retries and derived points. Raw-conversation deletion also removes pending rating state; validated records/cycles remain in the library. Model-generated recommendations retain cycle/hobby references in chat and can be restored from saved cycles without regenerating them.
+
 Source is implemented; user-run tests, browser checks, and real-model review remain pending.
 
 Attempts record a stable submission UUID, cycle/hobby/activity references, local attempt date, recorded timestamp/calendar date, completion flag, enjoyment/difficulty from 1–5, and an optional 500-character reflection. The IndexedDB read/modify/write is atomic. Resubmitting the same UUID is idempotent; a genuinely new attempt gets a new UUID.

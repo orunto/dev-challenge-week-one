@@ -20,7 +20,7 @@ import {
 } from './storage.js';
 import { sessionSchema, type Session } from './session.js';
 
-export async function saveOnboardingResult(session: Session, cycle: Cycle, expectedCurrentId: string | null): Promise<Library> {
+export async function saveOnboardingResult(session: Session, cycle: Cycle, expectedCurrentId: string | null, requireUnfinished = true): Promise<Library> {
   const snapshot = sessionSchema.parse(session);
   validateCycle(cycle);
   const token = storageWriteToken();
@@ -39,7 +39,7 @@ export async function saveOnboardingResult(session: Session, cycle: Cycle, expec
         try {
           assertStorageWriteToken(token);
           assertDataGeneration(generation.result);
-          if (storedSession.result !== undefined && sessionSchema.parse(storedSession.result).onboardingFinished === true) {
+          if (requireUnfinished && storedSession.result !== undefined && sessionSchema.parse(storedSession.result).onboardingFinished === true) {
             throw new Error('Onboarding was already completed in another tab');
           }
           const current = request.result === undefined ? emptyLibrary() : librarySchema.parse(request.result);
@@ -47,6 +47,50 @@ export async function saveOnboardingResult(session: Session, cycle: Cycle, expec
             throw new Error('The active cycle changed');
           }
           next = librarySchema.parse({ ...current, cycles: [...current.cycles, cycle], currentCycleId: cycle.id });
+          nextGeneration = Number(generation.result ?? 0) + 1;
+          if (!Number.isSafeInteger(nextGeneration)) {
+            throw new Error('Invalid data generation');
+          }
+          store.put(next, 'current');
+          transaction.objectStore('onboarding').put(snapshot, 'current');
+          transaction.objectStore('metadata').put(nextGeneration, 'generation');
+        } catch {
+          transaction.abort();
+        }
+      };
+      transaction.oncomplete = () => { acceptDataGeneration(nextGeneration); resolve(next); };
+      transaction.onerror = () => reject(new StorageError());
+      transaction.onabort = () => reject(new StorageError());
+    });
+  } finally {
+    database.close();
+  }
+}
+
+export async function saveReflectionResult(session: Session, log: ActivityLog): Promise<Library> {
+  const snapshot = sessionSchema.parse(session);
+  const token = storageWriteToken();
+  await flushSessionWrites();
+  const database = await openDatabase();
+  try {
+    return await new Promise<Library>((resolve, reject) => {
+      const transaction = database.transaction(['onboarding', 'library', 'metadata'], 'readwrite');
+      const generation = transaction.objectStore('metadata').get('generation');
+      const store = transaction.objectStore('library');
+      const currentSession = transaction.objectStore('onboarding').get('current');
+      const request = store.get('current');
+      let next: Library;
+      let nextGeneration = 0;
+      request.onsuccess = () => {
+        try {
+          assertStorageWriteToken(token);
+          assertDataGeneration(generation.result);
+          const current = librarySchema.parse(request.result);
+          const activeReflection = currentSession.result === undefined ? null : sessionSchema.parse(currentSession.result).reflection;
+          if (activeReflection && activeReflection.id !== log.id) {
+            throw new Error('A different reflection is active in another tab');
+          }
+          next = appendActivity(current, log);
           nextGeneration = Number(generation.result ?? 0) + 1;
           if (!Number.isSafeInteger(nextGeneration)) {
             throw new Error('Invalid data generation');

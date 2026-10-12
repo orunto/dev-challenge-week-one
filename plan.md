@@ -17,6 +17,7 @@ The first release should be a usable challenge demo with foundations we can exte
 - **Design:** the approved Hacktoberfest-inspired direction in [`design.md`](design.md).
 - **UI composition:** minimal mobile-first chatbot; welcome heading/subtitle/CTA → Gemma-initiated chat. Explanatory/privacy copy is behind an info icon; recommendation/record utilities are secondary.
 - **Conversation length:** five questions, with skips counting toward five. Then automatically extract preferences, generate recommendations, and atomically save the profile/cycle; no mandatory review step. Skipped choices use editable defaults. Waiting uses animated chat dots, respecting reduced motion.
+- **Recommendations and ratings:** recommendation messages, guided activity ratings, history, and refresh/favorite choices stay in the same bottom-aligned chat. Ratings use quick replies and the composer, with no separate forms; guided utility prompts run locally for offline logging.
 - **Budget:** $50 Render credit; begin with the smallest viable service and reserve at least $10 for judging and unexpected usage.
 - **Offline behavior:** saved recommendations and activity logging work offline; AI replies and recommendation refreshes require internet.
 
